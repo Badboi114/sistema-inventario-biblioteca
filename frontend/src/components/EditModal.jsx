@@ -42,20 +42,26 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
 
   // Campos dinámicos según tipo - TODOS OPCIONALES excepto título y código
   const fields = type === 'libros' ? [
-    { name: 'titulo', label: 'Título del Libro' },
-    { name: 'autor', label: 'Autor(es)' },
-    { name: 'codigo_nuevo', label: 'Código Inventario' },
-    { name: 'materia', label: 'Materia Asignada' },
+    { name: 'codigo_antiguo', label: 'Código Antiguo' },
+    { name: 'codigo_nuevo', label: 'Código Nuevo' },
+    { name: 'codigo_seccion_full', label: 'Código Sección' },
+    { name: 'titulo', label: 'Título' },
+    { name: 'autor', label: 'Autor' },
     { name: 'editorial', label: 'Editorial' },
-    { name: 'ubicacion_seccion', label: 'Ubicación (Sección)' },
-    { name: 'ubicacion_repisa', label: 'Ubicación (Repisa)' },
+    { name: 'edicion', label: 'Edición' },
     { name: 'anio', label: 'Año' },
-    { name: 'estado', label: 'Estado Físico', type: 'select', options: ['BUENO', 'REGULAR', 'MALO', 'EN REPARACION'] }
+    { name: 'facultad', label: 'Facultad' },
+    { name: 'materia', label: 'Materia' },
+    { name: 'ubicacion_seccion', label: 'Sección' },
+    { name: 'ubicacion_repisa', label: 'Repisa' },
+    { name: 'estado', label: 'Estado', type: 'select', options: ['BUENO', 'REGULAR', 'MALO', 'EN REPARACION'] },
+    { name: 'observaciones', label: 'Observaciones', type: 'textarea' }
   ] : [
     { name: 'titulo', label: 'Título del Proyecto' },
     { name: 'autor', label: 'Estudiante / Autor' },
     { name: 'tutor', label: 'Tutor Guía' },
     { name: 'carrera', label: 'Carrera' },
+    { name: 'facultad', label: 'Facultad' },
     { name: 'codigo_nuevo', label: 'Código Inventario' },
     { name: 'anio', label: 'Año' },
     { name: 'modalidad', label: 'Modalidad', type: 'select', options: ['TESIS', 'PROYECTO DE GRADO', 'TRABAJO DIRIGIDO'] },
@@ -94,7 +100,7 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             
             <form id="edit-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {fields.map((field) => (
-                <div key={field.name} className={field.name === 'titulo' ? 'md:col-span-2' : ''}>
+                <div key={field.name} className={field.name === 'titulo' || field.name === 'observaciones' ? 'md:col-span-2' : ''}>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wider">
                   {field.label} {(field.name === 'titulo' || field.name === 'codigo_nuevo') && <span className="text-red-500">*</span>}
                 </label>
@@ -108,6 +114,15 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
                     <option value="">-- Seleccionar --</option>
                     {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
+                ) : field.type === 'textarea' ? (
+                    <textarea
+                    name={field.name}
+                    value={formData[field.name] || ''}
+                    onChange={handleChange}
+                    rows="3"
+                    placeholder="Detalles adicionales..."
+                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-vertical"
+                    />
                 ) : (
                     <input
                     type={field.name === 'anio' ? 'number' : 'text'}

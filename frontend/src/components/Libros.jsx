@@ -190,11 +190,11 @@ const Libros = () => {
       {loading ? (
         <div className="text-center py-10 text-gray-500">Cargando catálogo...</div>
       ) : (
-        <div className="overflow-x-auto min-h-[400px]">
+        <div className="overflow-x-auto min-h-[400px] border border-gray-300">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 text-gray-700 text-sm uppercase border-b">
-                <th className="p-4 w-10">
+              <tr className="bg-gray-100 text-gray-700 text-xs uppercase border-b-2 border-gray-400">
+                <th className="p-2 border-r border-gray-300 w-10">
                   <input 
                     type="checkbox" 
                     onChange={toggleSelectAll}
@@ -202,20 +202,31 @@ const Libros = () => {
                     className="w-4 h-4 cursor-pointer"
                   />
                 </th>
-                <th className="p-4">Código</th>
-                <th className="p-4">Título / Materia</th>
-                <th className="p-4">Ubicación</th>
-                <th className="p-4">Estado</th>
+                <th className="p-2 border-r border-gray-300 text-center" style={{minWidth: '50px'}}>N°</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '120px'}}>Código Antiguo</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '120px'}}>Código Nuevo</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '120px'}}>Código Sección</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '250px'}}>Título</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '180px'}}>Autor</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '150px'}}>Editorial</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '80px'}}>Edición</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '80px'}}>Año</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '180px'}}>Facultad</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '180px'}}>Materia</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '100px'}}>Sección</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '80px'}}>Repisa</th>
+                <th className="p-2 border-r border-gray-300" style={{minWidth: '100px'}}>Estado</th>
+                <th className="p-2" style={{minWidth: '200px'}}>Observaciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
-              {libros.map((libro) => (
+            <tbody className="text-xs text-gray-600">
+              {libros.map((libro, index) => (
                 <tr 
                   key={libro.id} 
-                  className={`hover:bg-blue-50 transition-colors cursor-pointer ${selectedIds.includes(libro.id) ? 'bg-blue-100' : ''}`}
+                  className={`hover:bg-blue-50 transition-colors cursor-pointer border-b border-gray-200 ${selectedIds.includes(libro.id) ? 'bg-blue-100' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                   onContextMenu={(e) => handleContextMenu(e, libro)}
                 >
-                  <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                  <td className="p-2 border-r border-gray-200" onClick={(e) => e.stopPropagation()}>
                     <input 
                       type="checkbox" 
                       checked={selectedIds.includes(libro.id)} 
@@ -223,29 +234,56 @@ const Libros = () => {
                       className="w-4 h-4 cursor-pointer"
                     />
                   </td>
-                  <td className="p-4 font-bold text-primary whitespace-nowrap">
+                  <td className="p-2 border-r border-gray-200 text-center font-medium text-gray-700">
+                    {index + 1}
+                  </td>
+                  <td className="p-2 border-r border-gray-200">
+                    {libro.codigo_antiguo || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200 font-semibold text-primary">
                     {libro.codigo_nuevo}
                   </td>
-                  <td className="p-4">
-                    <div className="font-medium text-gray-800">{libro.titulo}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {libro.materia} • {libro.autor || 'Sin autor'}
-                    </div>
+                  <td className="p-2 border-r border-gray-200">
+                    {libro.codigo_seccion_full || '-'}
                   </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-secondary" />
-                      <span>{libro.ubicacion_seccion} - {libro.ubicacion_repisa}</span>
-                    </div>
+                  <td className="p-2 border-r border-gray-200 font-medium text-gray-800">
+                    {libro.titulo}
                   </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1
+                  <td className="p-2 border-r border-gray-200">
+                    {libro.autor || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200">
+                    {libro.editorial || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200">
+                    {libro.edicion || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200 text-center">
+                    {libro.anio || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200">
+                    {libro.facultad || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200">
+                    {libro.materia || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200 text-center">
+                    {libro.ubicacion_seccion || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200 text-center">
+                    {libro.ubicacion_repisa || '-'}
+                  </td>
+                  <td className="p-2 border-r border-gray-200">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 whitespace-nowrap
                       ${libro.estado === 'BUENO' ? 'bg-green-100 text-green-700' : 
                         libro.estado === 'REGULAR' ? 'bg-yellow-100 text-yellow-700' : 
                         'bg-red-100 text-red-700'}`}>
                       {libro.estado !== 'BUENO' && libro.estado !== 'REGULAR' && <AlertCircle className="w-3 h-3" />}
                       {libro.estado}
                     </span>
+                  </td>
+                  <td className="p-2">
+                    {libro.observaciones || '-'}
                   </td>
                 </tr>
               ))}

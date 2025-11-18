@@ -17,6 +17,7 @@ class ActivoBibliografico(models.Model):
     titulo = models.CharField(max_length=500, verbose_name='Título')
     autor = models.CharField(max_length=300, blank=True, null=True, verbose_name='Autor')
     anio = models.IntegerField(null=True, blank=True, verbose_name='Año')
+    facultad = models.CharField(max_length=255, blank=True, null=True, verbose_name='Facultad')
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='BUENO', blank=True, verbose_name='Estado')
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
     ubicacion_seccion = models.CharField(max_length=50, blank=True, null=True, verbose_name='Ubicación - Sección')
@@ -63,7 +64,6 @@ class TrabajoGrado(ActivoBibliografico):
     modalidad = models.CharField(max_length=30, choices=MODALIDAD_CHOICES, blank=True, null=True, verbose_name='Modalidad')
     tutor = models.CharField(max_length=300, blank=True, null=True, verbose_name='Tutor')
     carrera = models.CharField(max_length=200, blank=True, null=True, verbose_name='Carrera')
-    facultad = models.CharField(max_length=200, blank=True, null=True, verbose_name='Facultad')
     
     class Meta:
         verbose_name = 'Trabajo de Grado'
