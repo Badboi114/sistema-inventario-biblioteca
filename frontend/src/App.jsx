@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { LayoutDashboard, BookOpen, GraduationCap, AlertCircle, Menu, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, AlertCircle, Menu, LogOut, History } from 'lucide-react';
 import Libros from './components/Libros';
 import Tesis from './components/Tesis';
+import Historial from './components/Historial';
 import Login from './components/Login';
 
 function App() {
@@ -98,6 +99,14 @@ function App() {
           >
             <GraduationCap className="w-5 h-5" />
             {sidebarOpen && <span className="ml-3 font-medium">Tesis</span>}
+          </button>
+
+          <button 
+            onClick={() => setCurrentView('historial')}
+            className={`w-full flex items-center p-3 rounded-lg transition-colors ${currentView === 'historial' ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800'}`}
+          >
+            <History className="w-5 h-5" />
+            {sidebarOpen && <span className="ml-3 font-medium">Auditoría</span>}
           </button>
         </nav>
 
@@ -206,6 +215,9 @@ function App() {
 
         {/* VISTA: TESIS */}
         {currentView === 'tesis' && <Tesis />}
+
+        {/* VISTA: HISTORIAL */}
+        {currentView === 'historial' && <Historial />}
       </main>
     </div>
   );

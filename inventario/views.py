@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import viewsets, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count
 import traceback
 from .models import Libro, TrabajoGrado
@@ -11,12 +12,20 @@ from .serializers import LibroSerializer, TrabajoGradoSerializer
 class LibroViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestionar libros.
-    Permite búsqueda y ordenamiento.
+    Permite búsqueda, filtros avanzados y ordenamiento.
     """
     queryset = Libro.objects.all().order_by('-fecha_registro')
     serializer_class = LibroSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['titulo', 'codigo_nuevo', 'materia', 'autor']
+    filterset_fields = {
+        'codigo_nuevo': ['exact', 'icontains'],
+        'titulo': ['icontains'],
+        'materia': ['icontains'],
+        'ubicacion_seccion': ['exact'],
+        'estado': ['exact'],
+        'anio': ['exact'],
+    }
     ordering_fields = ['titulo', 'fecha_registro', 'codigo_nuevo', 'anio', 'estado']
     ordering = ['-fecha_registro']
 
@@ -24,12 +33,22 @@ class LibroViewSet(viewsets.ModelViewSet):
 class TrabajoGradoViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestionar trabajos de grado (tesis).
-    Permite búsqueda y ordenamiento.
+    Permite búsqueda, filtros avanzados y ordenamiento.
     """
     queryset = TrabajoGrado.objects.all().order_by('-fecha_registro')
     serializer_class = TrabajoGradoSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['titulo', 'autor', 'tutor', 'carrera']
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
+    search_fields = ['titulo', 'autor', 'tutor', 'carrera', 'codigo_nuevo']
+    filterset_fields = {
+        'codigo_nuevo': ['exact', 'icontains'],
+        'titulo': ['icontains'],
+        'autor': ['icontains'],
+        'carrera': ['icontains'],
+        'tutor': ['icontains'],
+        'modalidad': ['exact'],
+        'ubicacion_seccion': ['exact'],
+        'estado': ['exact'],
+    }
     ordering_fields = ['titulo', 'fecha_registro', 'anio', 'modalidad']
     ordering = ['-fecha_registro']
 
@@ -98,3 +117,63 @@ class DashboardStatsView(APIView):
                 {"error": "Error interno del servidor", "detalle": str(e)}, 
                 status=500
             )
+
+
+class HistorialView(APIView):
+    """Vista para obtener el historial de auditoría de libros y tesis"""
+    def get(self, request):
+        # 1. Obtener historial de Libros
+        historial_libros = Libro.history.all().order_by('-history_date')[:50]  # Últimos 50
+        
+        # 2. Obtener historial de Tesis
+        historial_tesis = TrabajoGrado.history.all().order_by('-history_date')[:50]
+        
+        # 3. Unificar y formatear
+        data = []
+        
+        def formatear_registro(record, tipo):
+            accion = 'Modificado'
+            if record.history_type == '+': accion = 'Creado'
+            if record.history_type == '-': accion = 'Eliminado'
+            
+            return {
+                'history_id': record.history_id,
+                'id_original': record.id,
+                'titulo': record.titulo,
+                'codigo': record.codigo_nuevo,
+                'fecha': record.history_date.isoformat(),
+                'usuario': str(record.history_user) if record.history_user else 'Sistema',
+                'accion': accion,
+                'tipo': tipo,
+                'modelo': 'libro' if tipo == 'Libro' else 'tesis'
+            }
+
+        for h in historial_libros: data.append(formatear_registro(h, 'Libro'))
+        for h in historial_tesis: data.append(formatear_registro(h, 'Tesis'))
+        
+        # Ordenar mezcla por fecha descendente
+        data.sort(key=lambda x: x['fecha'], reverse=True)
+        
+        return Response(data)
+
+
+class RestaurarRegistroView(APIView):
+    """Vista para restaurar un registro desde el historial"""
+    def post(self, request, modelo, history_id):
+        try:
+            # Determinar modelo
+            ModelHist = Libro.history if modelo == 'libro' else TrabajoGrado.history
+            
+            # Buscar el registro histórico
+            registro_historico = ModelHist.get(history_id=history_id)
+            
+            # Restaurar (La magia de simple_history)
+            # Esto recupera la instancia tal cual estaba en ese momento
+            instancia = registro_historico.instance
+            
+            # Guardamos para "revivirlo" en la tabla principal
+            instancia.save()
+            
+            return Response({"mensaje": "Restaurado exitosamente"})
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
