@@ -14,8 +14,9 @@ class LibroViewSet(viewsets.ModelViewSet):
     ViewSet para gestionar libros.
     Permite búsqueda, filtros avanzados y ordenamiento.
     BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles en la tabla.
+    ORDENAMIENTO: Por código de sección (lógica de estantería física)
     """
-    queryset = Libro.objects.all().order_by('orden_importacion')
+    queryset = Libro.objects.all().order_by('codigo_seccion_full', 'orden_importacion')
     serializer_class = LibroSerializer
     pagination_class = None  # Desactiva paginación para ver todos los libros en orden
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]

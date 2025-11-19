@@ -33,11 +33,14 @@ const Libros = () => {
       
       let data = response.data.results ? response.data.results : response.data;
       
-      // 🎯 FORZAR ORDENAMIENTO POR orden_importacion (orden del Excel)
+      // 🎯 ORDENAR POR CÓDIGO DE SECCIÓN (Lógica de estantería física)
       if (Array.isArray(data)) {
         data.sort((a, b) => {
-          // Ordenar por el campo orden_importacion que guardamos del Excel
-          return (a.orden_importacion || 0) - (b.orden_importacion || 0);
+          // Manejo de códigos nulos
+          const codA = a.codigo_seccion_full || '';
+          const codB = b.codigo_seccion_full || '';
+          // Comparación alfanumérica natural (S1-R1-2 antes que S1-R1-10)
+          return codA.localeCompare(codB, undefined, { numeric: true, sensitivity: 'base' });
         });
       }
       
