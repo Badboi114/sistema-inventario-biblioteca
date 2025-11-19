@@ -31,28 +31,12 @@ const Libros = () => {
       const params = { search: query, ...filters };
       const response = await axios.get('http://127.0.0.1:8000/api/libros/', { params });
       
-      let data = response.data.results ? response.data.results : response.data;
+      const data = response.data.results ? response.data.results : response.data;
       
-      // 🔍 DEBUG: Ver qué campos tiene el primer libro
-      if (data && data.length > 0) {
-        console.log("=== DATOS DEL PRIMER LIBRO ===");
-        console.log(data[0]);
-        console.log("Campos disponibles:", Object.keys(data[0]));
-        console.log("codigo_nuevo:", data[0].codigo_nuevo);
-        console.log("codigo_antiguo:", data[0].codigo_antiguo);
-        console.log("codigo_seccion_full:", data[0].codigo_seccion_full);
-      }
-      
-      // 🎯 ORDENAR POR CÓDIGO DE SECCIÓN (Lógica de estantería física)
-      if (Array.isArray(data)) {
-        data.sort((a, b) => {
-          // Manejo de códigos nulos
-          const codA = a.codigo_seccion_full || '';
-          const codB = b.codigo_seccion_full || '';
-          // Comparación alfanumérica natural (S1-R1-2 antes que S1-R1-10)
-          return codA.localeCompare(codB, undefined, { numeric: true, sensitivity: 'base' });
-        });
-      }
+      // 🎯 CONFIAMOS EN EL BACKEND - No reordenamos en el frontend
+      // El backend ya envía los datos ordenados correctamente:
+      // 1. Libros CON código de sección (ordenados por orden_importacion del Excel)
+      // 2. Libros SIN código de sección al final
       
       setLibros(data);
     } catch (error) {

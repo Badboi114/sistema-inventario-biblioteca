@@ -15,7 +15,7 @@ class LibroViewSet(viewsets.ModelViewSet):
     Permite búsqueda, filtros avanzados y ordenamiento.
     BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles en la tabla.
     ORDENAMIENTO INTELIGENTE:
-    1. Libros CON código de sección primero (ordenados alfabéticamente)
+    1. Libros CON código de sección primero (orden del Excel = orden_importacion)
     2. Libros SIN código de sección al final
     """
     queryset = Libro.objects.annotate(
@@ -24,7 +24,7 @@ class LibroViewSet(viewsets.ModelViewSet):
             default=Value(False),
             output_field=BooleanField(),
         )
-    ).order_by('-tiene_codigo', 'codigo_seccion_full', 'orden_importacion')
+    ).order_by('-tiene_codigo', 'orden_importacion')
     
     serializer_class = LibroSerializer
     pagination_class = None  # Desactiva paginación para ver todos los libros en orden
