@@ -33,6 +33,16 @@ const Libros = () => {
       
       let data = response.data.results ? response.data.results : response.data;
       
+      // 🔍 DEBUG: Ver qué campos tiene el primer libro
+      if (data && data.length > 0) {
+        console.log("=== DATOS DEL PRIMER LIBRO ===");
+        console.log(data[0]);
+        console.log("Campos disponibles:", Object.keys(data[0]));
+        console.log("codigo_nuevo:", data[0].codigo_nuevo);
+        console.log("codigo_antiguo:", data[0].codigo_antiguo);
+        console.log("codigo_seccion_full:", data[0].codigo_seccion_full);
+      }
+      
       // 🎯 ORDENAR POR CÓDIGO DE SECCIÓN (Lógica de estantería física)
       if (Array.isArray(data)) {
         data.sort((a, b) => {
@@ -238,9 +248,12 @@ const Libros = () => {
                   {/* COLUMNA 1: CÓDIGOS (CORREGIDA CON VALIDACIONES) */}
                   <td className="p-4 align-top">
                     <div className="flex flex-col gap-1">
-                        {/* Código Nuevo - Principal */}
+                        {/* Código Nuevo - Principal con DEBUG */}
                         <span className="font-bold text-blue-700 text-md">
-                            {libro.codigo_nuevo ? libro.codigo_nuevo : <span className="text-orange-400 italic">Sin Código</span>}
+                            {libro.codigo_nuevo && libro.codigo_nuevo.toString().trim() !== "" 
+                              ? libro.codigo_nuevo 
+                              : <span className="text-red-500 font-bold">⚠️ VACÍO (ID: {libro.id})</span>
+                            }
                         </span>
                         
                         {/* Código Antiguo */}
