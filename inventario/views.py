@@ -91,10 +91,12 @@ class TrabajoGradoViewSet(viewsets.ModelViewSet):
     ViewSet para gestionar trabajos de grado (tesis).
     Permite búsqueda, filtros avanzados y ordenamiento.
     BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles.
+    ORDENAMIENTO NATURAL: Los códigos se ordenan numéricamente (ADM-0001 antes que ADM-0025)
     """
-    queryset = TrabajoGrado.objects.all().order_by('-fecha_registro')
+    queryset = TrabajoGrado.objects.all()
     serializer_class = TrabajoGradoSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     
     # 🔍 BÚSQUEDA OMNIPOTENTE: Todos los campos de tesis
     search_fields = [
@@ -118,11 +120,48 @@ class TrabajoGradoViewSet(viewsets.ModelViewSet):
         'carrera': ['icontains'],
         'tutor': ['icontains'],
         'modalidad': ['exact'],
-        'ubicacion_seccion': ['exact'],
         'estado': ['exact'],
+        'facultad': ['icontains'],
     }
-    ordering_fields = ['titulo', 'fecha_registro', 'anio', 'modalidad']
-    ordering = ['-fecha_registro']
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Método personalizado de listado con ordenamiento inteligente en Python.
+        Ordena las tesis por código (ADM-0001, ADM-0002, CPU-001, etc.) de forma natural.
+        """
+        # 1. Aplicar filtros de búsqueda primero
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # 2. Convertir a lista para ordenar en Python
+        tesis = list(queryset)
+
+        # 3. Función de clave de ordenamiento inteligente para tesis
+        def llave_ordenamiento_tesis(tesis_item):
+            codigo = tesis_item.codigo_nuevo
+            if not codigo or codigo.strip() == '':
+                # Sin código -> va al final (peso 1)
+                return (1, '', [])
+            
+            # Extraer prefijo (letras) y números
+            # Ej: "ADM-0025" -> prefijo="ADM", numeros=[25]
+            try:
+                # Extraer el prefijo de letras
+                match = re.match(r'([A-Z]+)', codigo.upper())
+                prefijo = match.group(1) if match else ''
+                
+                # Extraer números
+                numeros = [int(n) for n in re.findall(r'\d+', codigo)]
+                
+                return (0, prefijo, numeros)  # Con código -> va al principio (peso 0)
+            except:
+                return (1, '', [])  # Si falla, al final
+
+        # 4. Ordenar en memoria usando Python
+        tesis.sort(key=llave_ordenamiento_tesis)
+
+        # 5. Serializar y devolver
+        serializer = self.get_serializer(tesis, many=True)
+        return Response(serializer.data)
 
 
 class DashboardStatsView(APIView):
@@ -132,58 +171,66 @@ class DashboardStatsView(APIView):
     """
     def get(self, request):
         try:
-            # Conteo total
+            # 1. Conteos Totales (Esto casi nunca falla)
             total_libros = Libro.objects.count()
             total_tesis = TrabajoGrado.objects.count()
             
-            # Libros por estado - convertir a diccionario simple
-            libros_por_estado_raw = Libro.objects.values('estado').annotate(
-                cantidad=Count('id')
-            ).order_by('estado')
-            
-            estado_dict = {str(item['estado']): item['cantidad'] for item in libros_por_estado_raw}
-            
-            # Últimos 5 libros agregados - serialización manual
-            ultimos_libros = Libro.objects.all().order_by('-fecha_registro')[:5]
-            ultimos_libros_data = []
-            for libro in ultimos_libros:
-                ultimos_libros_data.append({
-                    'id': libro.id,
-                    'titulo': str(libro.titulo),
-                    'codigo_nuevo': str(libro.codigo_nuevo),
-                    'estado': str(libro.estado),
-                    'fecha_creacion': libro.fecha_registro.isoformat() if libro.fecha_registro else None
-                })
-            
-            # Últimas 5 tesis agregadas
-            ultimos_tesis = TrabajoGrado.objects.all().order_by('-fecha_registro')[:5]
-            ultimos_tesis_data = []
-            for tesis in ultimos_tesis:
-                ultimos_tesis_data.append({
-                    'id': tesis.id,
-                    'titulo': str(tesis.titulo),
-                    'codigo_nuevo': str(tesis.codigo_nuevo),
-                    'estado': str(tesis.estado),
-                    'fecha_creacion': tesis.fecha_registro.isoformat() if tesis.fecha_registro else None
-                })
-            
-            ultimos_agregados = {
-                'libros': ultimos_libros_data,
-                'tesis': ultimos_tesis_data,
-            }
-            
+            # 2. Estados (Con manejo de errores por si acaso)
+            try:
+                estados_raw = Libro.objects.values('estado').annotate(total=Count('estado'))
+                libros_por_estado = {str(item['estado']): item['total'] for item in estados_raw}
+            except Exception:
+                libros_por_estado = {'MALO': 0}  # Fallback seguro
+
+            # 3. Últimos Agregados (Aquí suele estar el error)
+            ultimos = []
+            try:
+                # Usamos order_by('-fecha_registro') que es estándar y seguro
+                recent_libros = Libro.objects.all().order_by('-fecha_registro')[:5]
+                recent_tesis = TrabajoGrado.objects.all().order_by('-fecha_registro')[:5]
+
+                for l in recent_libros:
+                    fecha = l.fecha_registro.isoformat() if l.fecha_registro else ""
+                    ultimos.append({
+                        'id': l.id, 
+                        'titulo': str(l.titulo), 
+                        'codigo_nuevo': str(l.codigo_nuevo or 'S/C'), 
+                        'estado': str(l.estado), 
+                        'fecha': fecha, 
+                        'tipo': 'Libro'
+                    })
+
+                for t in recent_tesis:
+                    fecha = t.fecha_registro.isoformat() if t.fecha_registro else ""
+                    ultimos.append({
+                        'id': t.id, 
+                        'titulo': str(t.titulo), 
+                        'codigo_nuevo': str(t.codigo_nuevo or 'S/C'), 
+                        'estado': str(t.estado), 
+                        'fecha': fecha, 
+                        'tipo': 'Tesis'
+                    })
+                
+                # Ordenamos la lista combinada por fecha (descendente)
+                ultimos.sort(key=lambda x: x['fecha'], reverse=True)
+                
+            except Exception as e:
+                print(f"⚠️ Error procesando últimos: {e}")
+                # Si falla, enviamos lista vacía pero NO rompemos todo el dashboard
+                ultimos = []
+
             data = {
-                'total_libros': total_libros,
-                'total_tesis': total_tesis,
-                'libros_por_estado': estado_dict,
-                'ultimos_agregados': ultimos_agregados,
+                "total_libros": total_libros,
+                "total_tesis": total_tesis,
+                "libros_por_estado": libros_por_estado,
+                "ultimos_agregados": ultimos[:5]  # Solo los top 5
             }
             
             return Response(data)
             
         except Exception as e:
-            # Imprime el error en la consola de Django
-            print(f"\n🔴 ERROR CRÍTICO EN DASHBOARD: {str(e)}")
+            # Error catastrófico (DB caída, etc.)
+            print(f"\n🔴 ERROR CRÍTICO DASHBOARD: {str(e)}")
             traceback.print_exc()
             return Response(
                 {"error": "Error interno del servidor", "detalle": str(e)}, 
@@ -252,52 +299,95 @@ class RestaurarRegistroView(APIView):
 
 
 class SiguienteCodigoView(APIView):
-    """Vista para sugerir el siguiente código de sección disponible"""
+    """Vista para sugerir el siguiente código disponible (para libros o tesis)"""
     def get(self, request):
-        # Recibimos el prefijo, ej: "S1-R1"
-        prefijo = request.query_params.get('prefijo', '').strip()
+        tipo = request.query_params.get('tipo', 'libros')
+        prefijo = request.query_params.get('prefijo', '').strip().upper()
         
         if not prefijo:
             return Response({'siguiente': ''})
 
-        # Buscamos todos los códigos que empiecen con ese prefijo
-        # Asumimos formato "S1-R1-XXXX"
-        libros = Libro.objects.filter(codigo_seccion_full__startswith=prefijo)
-        
-        if not libros.exists():
-            return Response({'siguiente': f"{prefijo}-0001"})
+        if tipo == 'libros':
+            # Lógica para Libros (codigo_seccion_full: S1-R1-XXXX)
+            libros = Libro.objects.filter(codigo_seccion_full__istartswith=prefijo)
+            
+            if not libros.exists():
+                return Response({'siguiente': f"{prefijo}-0001"})
 
-        # Extraemos los números finales y buscamos el mayor
-        max_num = 0
-        for libro in libros:
-            if libro.codigo_seccion_full:
-                try:
-                    # Tomamos la parte después del último guion
-                    partes = libro.codigo_seccion_full.split('-')
-                    numero = int(partes[-1])
-                    if numero > max_num:
-                        max_num = numero
-                except (ValueError, IndexError):
-                    continue
-        
-        # Generamos el siguiente con formato de 4 ceros (0039)
-        siguiente_num = str(max_num + 1).zfill(4)
-        return Response({'siguiente': f"{prefijo}-{siguiente_num}"})
+            max_num = 0
+            for libro in libros:
+                if libro.codigo_seccion_full:
+                    try:
+                        partes = libro.codigo_seccion_full.split('-')
+                        numero = int(partes[-1])
+                        if numero > max_num:
+                            max_num = numero
+                    except (ValueError, IndexError):
+                        continue
+            
+            siguiente_num = str(max_num + 1).zfill(4)
+            return Response({'siguiente': f"{prefijo}-{siguiente_num}"})
+            
+        else:
+            # Lógica para Tesis (codigo_nuevo: ADM-0025, CPU-001)
+            # Normalizar prefijo (quitar guion si lo escribió)
+            clean_prefix = prefijo.rstrip('-')
+            tesis_list = TrabajoGrado.objects.filter(codigo_nuevo__istartswith=clean_prefix)
+            
+            if not tesis_list.exists():
+                return Response({'siguiente': f"{clean_prefix}-0001"})
+
+            max_num = 0
+            padding = 4  # Por defecto 4 dígitos (ADM-0001)
+            
+            for tesis in tesis_list:
+                if tesis.codigo_nuevo:
+                    try:
+                        # Extraer el último grupo de números
+                        numeros = re.findall(r'\d+', tesis.codigo_nuevo)
+                        if numeros:
+                            num = int(numeros[-1])
+                            if num > max_num:
+                                max_num = num
+                                # Detectar padding (3 o 4 dígitos)
+                                len_num_str = len(numeros[-1])
+                                padding = max(3, len_num_str)
+                    except:
+                        continue
+            
+            siguiente_num = str(max_num + 1).zfill(padding)
+            return Response({'siguiente': f"{clean_prefix}-{siguiente_num}"})
 
 
 class ListaSeccionesView(APIView):
-    """Vista para obtener todas las secciones únicas disponibles"""
+    """Vista para obtener todas las secciones/prefijos únicos disponibles (para libros o tesis)"""
     def get(self, request):
-        # Devuelve todas las secciones únicas para el autocompletado
-        # Extraemos solo la parte "S1-R1" de "S1-R1-0001"
-        codigos = Libro.objects.exclude(codigo_seccion_full__isnull=True).exclude(codigo_seccion_full='').values_list('codigo_seccion_full', flat=True)
+        tipo = request.query_params.get('tipo', 'libros')
         secciones = set()
-        for c in codigos:
-            if c:
-                # Unimos todo menos la última parte numérica
-                partes = c.split('-')
-                if len(partes) >= 2:
-                    prefijo = "-".join(partes[:-1])  # S1-R1
-                    secciones.add(prefijo)
+        
+        if tipo == 'libros':
+            # Para libros: extraer "S1-R1" de "S1-R1-0001"
+            codigos = Libro.objects.exclude(codigo_seccion_full__isnull=True).exclude(codigo_seccion_full='').values_list('codigo_seccion_full', flat=True)
+            for c in codigos:
+                if c:
+                    # Unimos todo menos la última parte numérica
+                    partes = c.split('-')
+                    if len(partes) >= 2:
+                        prefijo = "-".join(partes[:-1])  # S1-R1
+                        secciones.add(prefijo)
+        else:
+            # Para tesis: extraer "ADM" de "ADM-0025"
+            codigos = TrabajoGrado.objects.exclude(codigo_nuevo__isnull=True).exclude(codigo_nuevo='').values_list('codigo_nuevo', flat=True)
+            for c in codigos:
+                if c:
+                    # Separar letras de números usando regex
+                    match = re.match(r'([A-Z]+)', c.upper())
+                    if match:
+                        secciones.add(match.group(1))
+                    else:
+                        # Fallback: usar la parte antes del guion
+                        partes = c.split('-')
+                        if partes:
+                            secciones.add(partes[0].upper())
         
         return Response(sorted(list(secciones)))
