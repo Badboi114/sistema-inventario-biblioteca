@@ -235,15 +235,24 @@ const Libros = () => {
                       />
                   </td>
                   
-                  {/* COLUMNA 1: CÓDIGOS */}
+                  {/* COLUMNA 1: CÓDIGOS (CORREGIDA CON VALIDACIONES) */}
                   <td className="p-4 align-top">
                     <div className="flex flex-col gap-1">
-                        <span className="font-bold text-blue-700 text-md">{libro.codigo_nuevo || 'S/C'}</span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Hash className="w-3 h-3" /> Ant: {libro.codigo_antiguo || '-'}
+                        {/* Código Nuevo - Principal */}
+                        <span className="font-bold text-blue-700 text-md">
+                            {libro.codigo_nuevo ? libro.codigo_nuevo : <span className="text-orange-400 italic">Sin Código</span>}
                         </span>
+                        
+                        {/* Código Antiguo */}
                         <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Layers className="w-3 h-3" /> Sec: {libro.codigo_seccion_full || '-'}
+                            <Hash className="w-3 h-3" /> 
+                            Ant: {libro.codigo_antiguo || '-'}
+                        </span>
+                        
+                        {/* Código Sección (Ubicación física) */}
+                        <span className="text-xs text-gray-500 flex items-center gap-1 font-mono bg-gray-100 px-1 rounded w-max">
+                            <Layers className="w-3 h-3" /> 
+                            {libro.codigo_seccion_full || '-'}
                         </span>
                     </div>
                   </td>
@@ -263,16 +272,16 @@ const Libros = () => {
                     )}
                   </td>
 
-                  {/* COLUMNA 3: DETALLES (Editorial, Edición, Materia) */}
+                  {/* COLUMNA 3: DETALLES (Editorial, Edición, Materia, Año) */}
                   <td className="p-4 align-top">
                     <div className="flex flex-col gap-1 text-xs">
-                        <div className="font-semibold text-gray-700">{libro.editorial}</div>
-                        <div className="text-gray-500">{libro.edicion}</div>
+                        <div className="font-semibold text-gray-700">{libro.editorial || 'S/Editorial'}</div>
+                        <div className="text-gray-500">{libro.edicion || '-'}</div>
                         <div className="flex items-center gap-1 mt-1 text-gray-600">
-                            <Book className="w-3 h-3" /> {libro.materia}
+                            <Book className="w-3 h-3" /> {libro.materia || '-'}
                         </div>
                         <div className="flex items-center gap-1 text-gray-500">
-                            <Calendar className="w-3 h-3" /> {libro.anio}
+                            <Calendar className="w-3 h-3" /> {libro.anio || '-'}
                         </div>
                     </div>
                   </td>
@@ -281,9 +290,9 @@ const Libros = () => {
                   <td className="p-4 align-top">
                      <div className="flex flex-col gap-1 text-xs">
                         <div className="flex items-center gap-1 font-bold text-gray-700">
-                            <MapPin className="w-3 h-3 text-red-400" /> {libro.ubicacion_seccion}
+                            <MapPin className="w-3 h-3 text-red-400" /> {libro.ubicacion_seccion || 'S/Ubicación'}
                         </div>
-                        <div className="pl-4 text-gray-500">{libro.ubicacion_repisa}</div>
+                        <div className="pl-4 text-gray-500">{libro.ubicacion_repisa || '-'}</div>
                         {libro.facultad && (
                             <div className="mt-1 flex items-center gap-1 text-[10px] text-gray-400 border-t pt-1">
                                 <Building2 className="w-3 h-3" /> {libro.facultad}
@@ -298,7 +307,7 @@ const Libros = () => {
                       ${libro.estado === 'BUENO' ? 'bg-green-100 text-green-700 border-green-200' : 
                         libro.estado === 'REGULAR' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
                         'bg-red-100 text-red-700 border-red-200'}`}>
-                      {libro.estado}
+                      {libro.estado || 'REGULAR'}
                     </span>
                   </td>
                 </tr>
