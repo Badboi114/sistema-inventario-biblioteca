@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, MapPin, GraduationCap, AlertCircle, User, Users, Award, Trash2, Edit, Plus } from 'lucide-react';
+import { Search, MapPin, GraduationCap, AlertCircle, User, Users, Award, Trash2, Edit, Plus, Building2, Briefcase, Calendar } from 'lucide-react';
 import { Menu, Item, useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
 import Swal from 'sweetalert2';
@@ -204,7 +204,9 @@ const Tesis = () => {
                 <th className="p-4">Código</th>
                 <th className="p-4">Título / Modalidad</th>
                 <th className="p-4">Autor y Tutor</th>
-                <th className="p-4">Carrera / Año</th>
+                <th className="p-4">Facultad</th>
+                <th className="p-4">Carrera</th>
+                <th className="p-4">Año</th>
                 <th className="p-4">Estado</th>
               </tr>
             </thead>
@@ -249,14 +251,21 @@ const Tesis = () => {
                     </div>
                   </td>
                   <td className="p-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1 text-xs">
-                        <Award className="w-3 h-3 text-gray-400" />
-                        {item.carrera}
-                      </div>
-                      <div className="text-gray-400 text-xs">
-                        {item.anio}
-                      </div>
+                    <div className="flex items-center gap-1 font-medium text-gray-700">
+                      <Building2 className="w-3 h-3 text-gray-400" />
+                      {item.facultad}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-1 text-xs">
+                      <Briefcase className="w-3 h-3 text-gray-400" />
+                      {item.carrera}
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                      <Calendar className="w-3 h-3" />
+                      {item.anio}
                     </div>
                   </td>
                   <td className="p-4">
