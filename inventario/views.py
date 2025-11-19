@@ -175,14 +175,20 @@ class DashboardStatsView(APIView):
             total_libros = Libro.objects.count()
             total_tesis = TrabajoGrado.objects.count()
             
-            # 2. Estados (Con manejo de errores por si acaso)
+            # 2. CÁLCULO DE ATENCIÓN (SUMA LIBROS + TESIS)
+            # Contamos 'MALO' y 'EN REPARACION' en ambos modelos
+            malos_libros = Libro.objects.filter(estado__in=['MALO', 'EN REPARACION']).count()
+            malos_tesis = TrabajoGrado.objects.filter(estado__in=['MALO', 'EN REPARACION']).count()
+            total_atencion = malos_libros + malos_tesis  # CORRECCIÓN: 12 + 2 = 14
+            
+            # 3. Estados de Libros (Con manejo de errores por si acaso)
             try:
                 estados_raw = Libro.objects.values('estado').annotate(total=Count('estado'))
                 libros_por_estado = {str(item['estado']): item['total'] for item in estados_raw}
             except Exception:
                 libros_por_estado = {'MALO': 0}  # Fallback seguro
 
-            # 3. Últimos Agregados (Aquí suele estar el error)
+            # 4. Últimos Agregados (Aquí suele estar el error)
             ultimos = []
             try:
                 # Usamos order_by('-fecha_registro') que es estándar y seguro
@@ -222,6 +228,7 @@ class DashboardStatsView(APIView):
             data = {
                 "total_libros": total_libros,
                 "total_tesis": total_tesis,
+                "requieren_atencion": total_atencion,  # Enviamos el total sumado (libros + tesis)
                 "libros_por_estado": libros_por_estado,
                 "ultimos_agregados": ultimos[:5]  # Solo los top 5
             }

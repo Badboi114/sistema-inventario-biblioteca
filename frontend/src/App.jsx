@@ -168,7 +168,7 @@ function App() {
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 flex justify-between items-center">
                   <div>
                       <p className="text-gray-500 text-sm font-medium">Requieren Atención</p>
-                      <h3 className="text-3xl font-bold text-gray-800">{stats?.libros_por_estado?.MALO || '0'}</h3>
+                      <h3 className="text-3xl font-bold text-gray-800">{stats?.requieren_atencion || '0'}</h3>
                   </div>
                   <div className="p-3 bg-red-50 rounded-lg text-red-600"><AlertCircle /></div>
               </div>
