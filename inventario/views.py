@@ -13,15 +13,35 @@ class LibroViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestionar libros.
     Permite búsqueda, filtros avanzados y ordenamiento.
+    BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles en la tabla.
     """
     queryset = Libro.objects.all().order_by('-fecha_registro')
     serializer_class = LibroSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
-    search_fields = ['titulo', 'codigo_nuevo', 'materia', 'autor']
+    
+    # 🔍 BÚSQUEDA OMNIPOTENTE: Todos los campos de las 16 columnas
+    search_fields = [
+        'codigo_nuevo',         # Código Nuevo
+        'codigo_antiguo',       # Código Antiguo
+        'codigo_seccion_full',  # Código Sección
+        'titulo',               # Título
+        'autor',                # Autor
+        'editorial',            # Editorial
+        'edicion',              # Edición
+        'facultad',             # Facultad
+        'materia',              # Materia
+        'ubicacion_seccion',    # Sección
+        'ubicacion_repisa',     # Repisa
+        'estado',               # Estado
+        'observaciones'         # Observaciones
+    ]
+    
     filterset_fields = {
         'codigo_nuevo': ['exact', 'icontains'],
         'titulo': ['icontains'],
         'materia': ['icontains'],
+        'facultad': ['icontains'],
+        'editorial': ['icontains'],
         'ubicacion_seccion': ['exact'],
         'estado': ['exact'],
         'anio': ['exact'],
@@ -34,11 +54,27 @@ class TrabajoGradoViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestionar trabajos de grado (tesis).
     Permite búsqueda, filtros avanzados y ordenamiento.
+    BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles.
     """
     queryset = TrabajoGrado.objects.all().order_by('-fecha_registro')
     serializer_class = TrabajoGradoSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
-    search_fields = ['titulo', 'autor', 'tutor', 'carrera', 'codigo_nuevo']
+    
+    # 🔍 BÚSQUEDA OMNIPOTENTE: Todos los campos de tesis
+    search_fields = [
+        'codigo_nuevo',         # Código Nuevo
+        'titulo',               # Título
+        'autor',                # Autor (Estudiante)
+        'tutor',                # Tutor
+        'carrera',              # Carrera
+        'facultad',             # Facultad (heredado de base)
+        'modalidad',            # Modalidad
+        'ubicacion_seccion',    # Sección
+        'ubicacion_repisa',     # Repisa
+        'estado',               # Estado
+        'observaciones'         # Observaciones
+    ]
+    
     filterset_fields = {
         'codigo_nuevo': ['exact', 'icontains'],
         'titulo': ['icontains'],

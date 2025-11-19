@@ -12,7 +12,8 @@ class ActivoBibliografico(models.Model):
         ('EN REPARACION', 'En Reparación'),
     ]
     
-    codigo_nuevo = models.CharField(max_length=50, unique=True, db_index=True, verbose_name='Código Nuevo')
+    # Permite múltiples registros sin código (NULL). Los códigos existentes siguen siendo únicos.
+    codigo_nuevo = models.CharField(max_length=50, null=True, blank=True, db_index=True, verbose_name='Código Nuevo')
     codigo_antiguo = models.CharField(max_length=50, null=True, blank=True, verbose_name='Código Antiguo')
     titulo = models.CharField(max_length=500, verbose_name='Título')
     autor = models.CharField(max_length=300, blank=True, null=True, verbose_name='Autor')
