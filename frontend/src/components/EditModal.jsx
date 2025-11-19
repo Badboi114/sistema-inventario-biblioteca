@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Save, AlertCircle, PlusCircle, MapPin } from 'lucide-react';
+import { X, Save, AlertCircle, PlusCircle, MapPin, Hash } from 'lucide-react';
 
 const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
   const [formData, setFormData] = useState({});
@@ -8,7 +8,7 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
   
   // Estados para la lógica de secciones inteligentes
   const [seccionesDisponibles, setSeccionesDisponibles] = useState([]);
-  const [prefijoSeccion, setPrefijoSeccion] = useState(''); // Ej: S1-R1
+  const [prefijoSeccion, setPrefijoSeccion] = useState(''); // Ej: S1-R1 para libros, ADM para tesis
 
   useEffect(() => {
     if (isOpen) {
@@ -21,11 +21,16 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             });
             setFormData(cleanItem);
             
-            // Extraer prefijo si existe código de sección
-            if (cleanItem.codigo_seccion_full) {
+            // Extraer prefijo si existe código
+            if (type === 'libros' && cleanItem.codigo_seccion_full) {
                 const partes = cleanItem.codigo_seccion_full.split('-');
                 if (partes.length >= 3) {
                     setPrefijoSeccion(`${partes[0]}-${partes[1]}`);
+                }
+            } else if (type === 'tesis' && cleanItem.codigo_nuevo) {
+                const match = cleanItem.codigo_nuevo.match(/^([A-Z]+)/);
+                if (match) {
+                    setPrefijoSeccion(match[1]);
                 }
             }
         } else {
@@ -34,18 +39,16 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             setPrefijoSeccion('');
         }
         
-        // Cargar lista de secciones para sugerir (solo para libros)
-        if (type === 'libros') {
-            axios.get('http://127.0.0.1:8000/api/secciones-disponibles/')
-                 .then(res => setSeccionesDisponibles(res.data))
-                 .catch(err => console.error('Error cargando secciones:', err));
-        }
+        // Cargar lista de secciones/prefijos para sugerir (PARA AMBOS TIPOS)
+        axios.get(`http://127.0.0.1:8000/api/secciones-disponibles/?tipo=${type}`)
+             .then(res => setSeccionesDisponibles(res.data))
+             .catch(err => console.error('Error cargando secciones:', err));
     }
   }, [item, isOpen, type]);
 
   if (!isOpen) return null;
 
-  // --- LÓGICA INTELIGENTE DE SECCIONES ---
+  // --- LÓGICA INTELIGENTE DE SECCIONES/CÓDIGOS ---
   const handlePrefijoChange = async (e) => {
     const nuevoPrefijo = e.target.value.toUpperCase();
     setPrefijoSeccion(nuevoPrefijo);
@@ -53,15 +56,23 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
     // Si selecciona un prefijo, pedimos el siguiente número
     if (nuevoPrefijo && !item) { // Solo en modo creación sugerimos
         try {
-            const res = await axios.get(`http://127.0.0.1:8000/api/siguiente-codigo/?prefijo=${nuevoPrefijo}`);
+            const res = await axios.get(`http://127.0.0.1:8000/api/siguiente-codigo/?tipo=${type}&prefijo=${nuevoPrefijo}`);
             if (res.data.siguiente) {
-                setFormData(prev => ({
-                    ...prev,
-                    codigo_seccion_full: res.data.siguiente,
-                    // También llenamos Sección y Repisa automáticamente
-                    ubicacion_seccion: `SECCION ${nuevoPrefijo.split('-')[0].replace('S', '')}`,
-                    ubicacion_repisa: `REPISA ${nuevoPrefijo.split('-')[1].replace('R', '')}`
-                }));
+                if (type === 'libros') {
+                    setFormData(prev => ({
+                        ...prev,
+                        codigo_seccion_full: res.data.siguiente,
+                        // También llenamos Sección y Repisa automáticamente
+                        ubicacion_seccion: `SECCION ${nuevoPrefijo.split('-')[0].replace('S', '')}`,
+                        ubicacion_repisa: `REPISA ${nuevoPrefijo.split('-')[1].replace('R', '')}`
+                    }));
+                } else {
+                    // Para Tesis, llenamos el CODIGO NUEVO
+                    setFormData(prev => ({
+                        ...prev,
+                        codigo_nuevo: res.data.siguiente
+                    }));
+                }
             }
         } catch (error) {
             console.error("Error obteniendo sugerencia:", error);
@@ -108,7 +119,6 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
     { name: 'tutor', label: 'Tutor Guía' },
     { name: 'carrera', label: 'Carrera' },
     { name: 'facultad', label: 'Facultad' },
-    { name: 'codigo_nuevo', label: 'Código Inventario' },
     { name: 'anio', label: 'Año' },
     { name: 'modalidad', label: 'Modalidad', type: 'select', options: ['TESIS', 'PROYECTO DE GRADO', 'TRABAJO DIRIGIDO'] },
     { name: 'ubicacion_seccion', label: 'Ubicación' },
@@ -148,43 +158,43 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             
             <form id="edit-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                {/* SECCIÓN ESPECIAL PARA CÓDIGO DE UBICACIÓN (SOLO LIBROS) */}
-                {type === 'libros' && (
+                {/* ASISTENTE INTELIGENTE (PARA LIBROS Y TESIS) */}
+                {!isEditing && (
                     <div className="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200 mb-2 shadow-sm">
                         <label className="block text-sm font-bold text-blue-800 uppercase mb-3 flex items-center gap-2">
-                            <MapPin className="w-5 h-5" /> 🎯 Asistente de Ubicación Inteligente
+                            {type === 'libros' ? <MapPin className="w-5 h-5" /> : <Hash className="w-5 h-5" />}
+                            🎯 Asistente Inteligente de {type === 'libros' ? 'Ubicación' : 'Códigos'}
                         </label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs text-gray-600 font-semibold block mb-2">
-                                    1️⃣ Elegir o Escribir Sección (ej: S1-R1)
+                                    1️⃣ {type === 'libros' ? 'Elegir o Escribir Sección (ej: S1-R1)' : 'Elegir Prefijo (ej: ADM)'}
                                 </label>
                                 <input 
                                     list="secciones-list" 
                                     className="w-full p-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold text-blue-900"
-                                    placeholder="Ej: S1-R1, S2-R3..."
+                                    placeholder={type === 'libros' ? 'Ej: S1-R1, S2-R3...' : 'Ej: ADM, CPU, IND...'}
                                     value={prefijoSeccion}
                                     onChange={handlePrefijoChange}
-                                    disabled={isEditing} // Solo sugerimos al crear
                                 />
                                 <datalist id="secciones-list">
                                     {seccionesDisponibles.map(s => <option key={s} value={s} />)}
                                 </datalist>
-                                <p className="text-xs text-gray-500 mt-1">Selecciona de la lista o escribe una nueva</p>
+                                <p className="text-xs text-gray-500 mt-1">Selecciona de la lista o escribe {type === 'libros' ? 'una nueva sección' : 'un nuevo prefijo'}</p>
                             </div>
                             <div>
                                 <label className="text-xs text-gray-600 font-semibold block mb-2">
                                     2️⃣ Código Generado Automáticamente (Editable)
                                 </label>
                                 <input 
-                                    name="codigo_seccion_full"
-                                    value={formData.codigo_seccion_full || ''}
+                                    name={type === 'libros' ? 'codigo_seccion_full' : 'codigo_nuevo'}
+                                    value={type === 'libros' ? (formData.codigo_seccion_full || '') : (formData.codigo_nuevo || '')}
                                     onChange={handleChange}
                                     className="w-full p-3 border-2 border-green-300 rounded-lg font-bold text-green-700 text-lg bg-green-50 focus:ring-2 focus:ring-green-500"
                                     placeholder="Se generará automáticamente..."
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    {formData.codigo_seccion_full ? '✅ Código sugerido (puedes editarlo)' : '⏳ Esperando sección...'}
+                                    {(type === 'libros' ? formData.codigo_seccion_full : formData.codigo_nuevo) ? '✅ Código sugerido (puedes editarlo)' : `⏳ Esperando ${type === 'libros' ? 'sección' : 'prefijo'}...`}
                                 </p>
                             </div>
                         </div>
