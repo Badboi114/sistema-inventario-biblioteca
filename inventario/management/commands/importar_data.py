@@ -84,42 +84,20 @@ class Command(BaseCommand):
                         creados += 1
 
                     # ==========================================
-                    # LOGICA TESIS (ESTRICTA - SOLO N° 1-599 ÚNICOS)
+                    # LOGICA TESIS (MODO ESPEJO TOTAL - SIN RESTRICCIONES)
                     # ==========================================
                     elif tipo == 'tesis':
-                        # FILTRO ESTRICTO: Debe tener número válido en columna N°
-                        raw_n = str(row.get('N°', row.get('Nº', ''))).strip()
+                        # 1. VALIDACIÓN MÍNIMA: Solo título
+                        # Ignoramos la columna N° para no perder datos mal numerados
+                        # Si tiene título, lo importamos
                         
-                        # Si no tiene número válido, OMITIR
-                        if not raw_n or raw_n.lower() == 'nan':
-                            omitidos += 1
-                            continue
-                        
-                        # Verificar que sea numérico y esté en rango 1-599
-                        try:
-                            n = int(float(raw_n))
-                            if n < 1 or n > 599:
-                                omitidos += 1
-                                continue
-                            
-                            # NO REPETIR NÚMEROS (garantiza máximo 599 únicos)
-                            if n in numeros_procesados_tesis:
-                                omitidos += 1
-                                continue
-                            
-                            numeros_procesados_tesis.add(n)
-                            
-                        except (ValueError, TypeError):
-                            omitidos += 1
-                            continue
-                        
-                        # Preparar código
+                        # 2. Limpieza de Código (Buscamos variantes de nombre de columna)
                         raw_codigo = str(row.get('CODIGO NUEVO', '')).strip()
-                        if not raw_codigo:
-                            raw_codigo = str(row.get('CODIGO NUEVO ', '')).strip()
+                        if not raw_codigo: 
+                            raw_codigo = str(row.get('CODIGO NUEVO ', '')).strip()  # Con espacio
+                        
                         codigo = None if (not raw_codigo or raw_codigo.lower() == 'nan') else raw_codigo
 
-                        # Preparar datos de tesis
                         defaults_tesis = {
                             'titulo': titulo,
                             'autor': str(row.get('ESTUDIANTE', '')).strip(),
@@ -132,9 +110,12 @@ class Command(BaseCommand):
                         }
                         
                         if codigo:
+                            # Si tiene código (ej: CPU-001, ADM-0025), actualizamos o creamos
                             TrabajoGrado.objects.update_or_create(codigo_nuevo=codigo, defaults=defaults_tesis)
                         else:
+                            # Si no tiene código, creamos nuevo siempre
                             TrabajoGrado.objects.create(codigo_nuevo=None, **defaults_tesis)
+                        
                         creados += 1
 
                 except Exception as e:
