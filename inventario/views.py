@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Case, When, Value, BooleanField
 import traceback
+import re
 from .models import Libro, TrabajoGrado
 from .serializers import LibroSerializer, TrabajoGradoSerializer
 
@@ -14,21 +15,13 @@ class LibroViewSet(viewsets.ModelViewSet):
     ViewSet para gestionar libros.
     Permite búsqueda, filtros avanzados y ordenamiento.
     BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles en la tabla.
-    ORDENAMIENTO INTELIGENTE:
-    1. Libros CON código de sección primero (orden del Excel = orden_importacion)
-    2. Libros SIN código de sección al final
+    ORDENAMIENTO NATURAL: Los códigos se ordenan numéricamente (S1-R1-0001 antes que S1-R1-0039)
+    Los libros sin código van al final.
     """
-    queryset = Libro.objects.annotate(
-        tiene_codigo=Case(
-            When(codigo_seccion_full__isnull=False, codigo_seccion_full__gt='', then=Value(True)),
-            default=Value(False),
-            output_field=BooleanField(),
-        )
-    ).order_by('-tiene_codigo', 'orden_importacion')
-    
+    queryset = Libro.objects.all()
     serializer_class = LibroSerializer
-    pagination_class = None  # Desactiva paginación para ver todos los libros en orden
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     
     # 🔍 BÚSQUEDA OMNIPOTENTE: Todos los campos de las 16 columnas
     search_fields = [
@@ -57,7 +50,39 @@ class LibroViewSet(viewsets.ModelViewSet):
         'estado': ['exact'],
         'anio': ['exact'],
     }
-    ordering_fields = ['titulo', 'fecha_registro', 'codigo_nuevo', 'anio', 'estado']
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Método personalizado de listado con ordenamiento inteligente en Python.
+        Ordena los libros por código de sección de forma natural (numérica).
+        """
+        # 1. Aplicar filtros de búsqueda primero
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # 2. Convertir a lista para ordenar en Python
+        libros = list(queryset)
+
+        # 3. Función de clave de ordenamiento inteligente
+        def llave_ordenamiento(libro):
+            codigo = libro.codigo_seccion_full
+            if not codigo or codigo.strip() == '':
+                # Sin código -> va al final (peso 1)
+                return (1, [])
+            
+            # Extraer todos los números del código usando regex
+            # Ej: "S1-R1-0039" -> [1, 1, 39]
+            try:
+                numeros = [int(n) for n in re.findall(r'\d+', codigo)]
+                return (0, numeros)  # Con código -> va al principio (peso 0)
+            except:
+                return (1, [])  # Si falla, al final
+
+        # 4. Ordenar en memoria usando Python (muy rápido para ~2000 registros)
+        libros.sort(key=llave_ordenamiento)
+
+        # 5. Serializar y devolver
+        serializer = self.get_serializer(libros, many=True)
+        return Response(serializer.data)
     ordering = ['-fecha_registro']
 
 
