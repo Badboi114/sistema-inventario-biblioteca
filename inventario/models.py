@@ -44,10 +44,12 @@ class Libro(ActivoBibliografico):
     editorial = models.CharField(max_length=200, blank=True, null=True, verbose_name='Editorial')
     edicion = models.CharField(max_length=100, blank=True, null=True, verbose_name='Edición')
     codigo_seccion_full = models.CharField(max_length=100, blank=True, null=True, verbose_name='Código Completo de Sección')
+    orden_importacion = models.IntegerField(default=0, verbose_name='Orden de Importación', db_index=True)
     
     class Meta:
         verbose_name = 'Libro'
         verbose_name_plural = 'Libros'
+        ordering = ['orden_importacion']
     
     def __str__(self):
         return self.titulo

@@ -31,7 +31,16 @@ const Libros = () => {
       const params = { search: query, ...filters };
       const response = await axios.get('http://127.0.0.1:8000/api/libros/', { params });
       
-      const data = response.data.results ? response.data.results : response.data;
+      let data = response.data.results ? response.data.results : response.data;
+      
+      // 🎯 FORZAR ORDENAMIENTO POR orden_importacion (orden del Excel)
+      if (Array.isArray(data)) {
+        data.sort((a, b) => {
+          // Ordenar por el campo orden_importacion que guardamos del Excel
+          return (a.orden_importacion || 0) - (b.orden_importacion || 0);
+        });
+      }
+      
       setLibros(data);
     } catch (error) {
       console.error("Error cargando libros:", error);

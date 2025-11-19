@@ -2,10 +2,11 @@ import pandas as pd
 from django.core.management.base import BaseCommand, CommandError
 from inventario.models import Libro, TrabajoGrado
 from django.db import transaction
+from django.db.models import Max
 
 
 class Command(BaseCommand):
-    help = 'Importar TODO el contenido del Excel fila por fila (Modo Espejo)'
+    help = 'Importar manteniendo el orden exacto y secuencial entre archivos'
 
     def add_arguments(self, parser):
         parser.add_argument('archivo', type=str)
@@ -28,15 +29,26 @@ class Command(BaseCommand):
         df.columns = df.columns.str.strip().str.upper()
         df = df.fillna('')
 
-        print(f"Procesando hoja completa con {len(df)} filas...")
+        print(f"Procesando {len(df)} filas...")
+        
+        # 🎯 CORRECCIÓN MAESTRA: Obtener el último orden usado
+        if tipo == 'libro':
+            max_order = Libro.objects.aggregate(Max('orden_importacion'))['orden_importacion__max']
+            start_index = (max_order + 1) if max_order is not None else 0
+            print(f"📊 Orden inicial: {start_index}")
+        else:
+            start_index = 0
+
         creados = 0
         omitidos = 0
-        numeros_procesados_tesis = set()  # Para evitar duplicados en tesis
+        numeros_procesados_tesis = set()
 
-        # Usamos transaction para velocidad
         with transaction.atomic():
-            for index, row in df.iterrows():
+            for i, (index, row) in enumerate(df.iterrows()):
                 try:
+                    # Calculamos el orden absoluto desde el inicio de todos los libros
+                    orden_real = start_index + i
+
                     # 1. VALIDACIÓN MÍNIMA: Si no hay título, asumimos que es una fila vacía del Excel
                     titulo = str(row.get('TITULO', '')).strip()
                     if not titulo or titulo.lower() == 'nan':
@@ -64,6 +76,7 @@ class Command(BaseCommand):
                             'ubicacion_repisa': str(row.get('REPISA', '')).strip(),
                             'estado': self.normalizar_estado(str(row.get('ESTADO', 'REGULAR'))),
                             'observaciones': str(row.get('OBSERVACIONES', '')).strip(),
+                            'orden_importacion': orden_real,  # 🎯 Orden secuencial absoluto
                         }
                         
                         # MODO ESPEJO: Crear SIEMPRE (sin importar duplicados)
@@ -127,7 +140,7 @@ class Command(BaseCommand):
                 except Exception as e:
                     print(f"Error fila {index}: {e}")
 
-        self.stdout.write(self.style.SUCCESS(f'✅ CARGA COMPLETA: Se procesaron {creados} registros válidos. Omitidos: {omitidos}'))
+        self.stdout.write(self.style.SUCCESS(f'✅ CARGA COMPLETA: Se procesaron {creados} registros válidos. Omitidos: {omitidos}. Rango de orden: {start_index} al {start_index + creados}'))
 
     def parse_anio(self, value):
         try:

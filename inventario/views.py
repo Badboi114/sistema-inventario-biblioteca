@@ -15,8 +15,9 @@ class LibroViewSet(viewsets.ModelViewSet):
     Permite búsqueda, filtros avanzados y ordenamiento.
     BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles en la tabla.
     """
-    queryset = Libro.objects.all().order_by('-fecha_registro')
+    queryset = Libro.objects.all().order_by('orden_importacion')
     serializer_class = LibroSerializer
+    pagination_class = None  # Desactiva paginación para ver todos los libros en orden
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     
     # 🔍 BÚSQUEDA OMNIPOTENTE: Todos los campos de las 16 columnas
