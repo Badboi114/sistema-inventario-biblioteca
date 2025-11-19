@@ -3,7 +3,7 @@ from rest_framework import viewsets, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Count
+from django.db.models import Count, Case, When, Value, BooleanField
 import traceback
 from .models import Libro, TrabajoGrado
 from .serializers import LibroSerializer, TrabajoGradoSerializer
@@ -14,9 +14,18 @@ class LibroViewSet(viewsets.ModelViewSet):
     ViewSet para gestionar libros.
     Permite búsqueda, filtros avanzados y ordenamiento.
     BÚSQUEDA OMNIPOTENTE: Busca en TODOS los campos de texto visibles en la tabla.
-    ORDENAMIENTO: Por código de sección (lógica de estantería física)
+    ORDENAMIENTO INTELIGENTE:
+    1. Libros CON código de sección primero (ordenados alfabéticamente)
+    2. Libros SIN código de sección al final
     """
-    queryset = Libro.objects.all().order_by('codigo_seccion_full', 'orden_importacion')
+    queryset = Libro.objects.annotate(
+        tiene_codigo=Case(
+            When(codigo_seccion_full__isnull=False, codigo_seccion_full__gt='', then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    ).order_by('-tiene_codigo', 'codigo_seccion_full', 'orden_importacion')
+    
     serializer_class = LibroSerializer
     pagination_class = None  # Desactiva paginación para ver todos los libros en orden
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
