@@ -98,13 +98,34 @@ class Command(BaseCommand):
                         
                         codigo = None if (not raw_codigo or raw_codigo.lower() == 'nan') else raw_codigo
 
+                        # --- BÚSQUEDA MÚLTIPLE DE COLUMNAS (A PRUEBA DE FALLOS) ---
+                        
+                        # 1. AUTOR (Puede ser 'ESTUDIANTE' o 'AUTOR')
+                        autor = str(row.get('ESTUDIANTE', '')).strip()
+                        if not autor: 
+                            autor = str(row.get('AUTOR', '')).strip()
+                        
+                        # 2. CARRERA (Puede tener espacio 'CARRERA ')
+                        carrera = str(row.get('CARRERA', '')).strip()
+                        if not carrera: 
+                            carrera = str(row.get('CARRERA ', '')).strip()
+                        
+                        # 3. TUTOR (Sin variantes conocidas, pero lo dejamos robusto)
+                        tutor = str(row.get('TUTOR', '')).strip()
+                        
+                        # 4. MODALIDAD
+                        modalidad = str(row.get('MODALIDAD', '')).strip()
+                        
+                        # 5. FACULTAD
+                        facultad = str(row.get('FACULTAD', '')).strip()
+
                         defaults_tesis = {
                             'titulo': titulo,
-                            'autor': str(row.get('ESTUDIANTE', '')).strip(),
-                            'tutor': str(row.get('TUTOR', '')).strip(),
-                            'modalidad': str(row.get('MODALIDAD', '')).strip(),
-                            'carrera': str(row.get('CARRERA', row.get('CARRERA ', ''))).strip(),
-                            'facultad': str(row.get('FACULTAD', '')).strip(),
+                            'autor': autor,  # Variable corregida con búsqueda múltiple
+                            'tutor': tutor,
+                            'modalidad': modalidad,
+                            'carrera': carrera,  # Variable corregida con búsqueda múltiple
+                            'facultad': facultad,
                             'anio': self.parse_anio(row.get('AÑO')),
                             'estado': self.normalizar_estado(str(row.get('ESTADO', 'REGULAR'))),
                         }
