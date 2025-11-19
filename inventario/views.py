@@ -214,3 +214,55 @@ class RestaurarRegistroView(APIView):
             return Response({"mensaje": "Restaurado exitosamente"})
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+
+class SiguienteCodigoView(APIView):
+    """Vista para sugerir el siguiente código de sección disponible"""
+    def get(self, request):
+        # Recibimos el prefijo, ej: "S1-R1"
+        prefijo = request.query_params.get('prefijo', '').strip()
+        
+        if not prefijo:
+            return Response({'siguiente': ''})
+
+        # Buscamos todos los códigos que empiecen con ese prefijo
+        # Asumimos formato "S1-R1-XXXX"
+        libros = Libro.objects.filter(codigo_seccion_full__startswith=prefijo)
+        
+        if not libros.exists():
+            return Response({'siguiente': f"{prefijo}-0001"})
+
+        # Extraemos los números finales y buscamos el mayor
+        max_num = 0
+        for libro in libros:
+            if libro.codigo_seccion_full:
+                try:
+                    # Tomamos la parte después del último guion
+                    partes = libro.codigo_seccion_full.split('-')
+                    numero = int(partes[-1])
+                    if numero > max_num:
+                        max_num = numero
+                except (ValueError, IndexError):
+                    continue
+        
+        # Generamos el siguiente con formato de 4 ceros (0039)
+        siguiente_num = str(max_num + 1).zfill(4)
+        return Response({'siguiente': f"{prefijo}-{siguiente_num}"})
+
+
+class ListaSeccionesView(APIView):
+    """Vista para obtener todas las secciones únicas disponibles"""
+    def get(self, request):
+        # Devuelve todas las secciones únicas para el autocompletado
+        # Extraemos solo la parte "S1-R1" de "S1-R1-0001"
+        codigos = Libro.objects.exclude(codigo_seccion_full__isnull=True).exclude(codigo_seccion_full='').values_list('codigo_seccion_full', flat=True)
+        secciones = set()
+        for c in codigos:
+            if c:
+                # Unimos todo menos la última parte numérica
+                partes = c.split('-')
+                if len(partes) >= 2:
+                    prefijo = "-".join(partes[:-1])  # S1-R1
+                    secciones.add(prefijo)
+        
+        return Response(sorted(list(secciones)))

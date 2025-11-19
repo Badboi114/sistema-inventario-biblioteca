@@ -17,7 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from inventario.views import LibroViewSet, TrabajoGradoViewSet, DashboardStatsView, HistorialView, RestaurarRegistroView
+from inventario.views import (
+    LibroViewSet, TrabajoGradoViewSet, DashboardStatsView, 
+    HistorialView, RestaurarRegistroView, SiguienteCodigoView, ListaSeccionesView
+)
 # Importamos las vistas de Token
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -38,4 +41,8 @@ urlpatterns = [
     # RUTAS DE HISTORIAL Y RESTAURACIÓN
     path('api/historial/', HistorialView.as_view(), name='historial'),
     path('api/restaurar/<str:modelo>/<int:history_id>/', RestaurarRegistroView.as_view(), name='restaurar'),
+    
+    # RUTAS DE ASISTENTE DE UBICACIÓN INTELIGENTE
+    path('api/siguiente-codigo/', SiguienteCodigoView.as_view(), name='siguiente-codigo'),
+    path('api/secciones-disponibles/', ListaSeccionesView.as_view(), name='secciones-disponibles'),
 ]

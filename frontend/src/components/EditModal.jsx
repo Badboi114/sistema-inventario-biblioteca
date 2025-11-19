@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, PlusCircle } from 'lucide-react';
+import axios from 'axios';
+import { X, Save, AlertCircle, PlusCircle, MapPin } from 'lucide-react';
 
 const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
   const [formData, setFormData] = useState({});
   const [error, setError] = useState('');
+  
+  // Estados para la lógica de secciones inteligentes
+  const [seccionesDisponibles, setSeccionesDisponibles] = useState([]);
+  const [prefijoSeccion, setPrefijoSeccion] = useState(''); // Ej: S1-R1
 
   useEffect(() => {
     if (isOpen) {
@@ -15,14 +20,54 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
                 cleanItem[key] = item[key] === null || item[key] === undefined ? '' : item[key];
             });
             setFormData(cleanItem);
+            
+            // Extraer prefijo si existe código de sección
+            if (cleanItem.codigo_seccion_full) {
+                const partes = cleanItem.codigo_seccion_full.split('-');
+                if (partes.length >= 3) {
+                    setPrefijoSeccion(`${partes[0]}-${partes[1]}`);
+                }
+            }
         } else {
             // MODO CREACIÓN: Formulario limpio
             setFormData({}); 
+            setPrefijoSeccion('');
+        }
+        
+        // Cargar lista de secciones para sugerir (solo para libros)
+        if (type === 'libros') {
+            axios.get('http://127.0.0.1:8000/api/secciones-disponibles/')
+                 .then(res => setSeccionesDisponibles(res.data))
+                 .catch(err => console.error('Error cargando secciones:', err));
         }
     }
-  }, [item, isOpen]);
+  }, [item, isOpen, type]);
 
   if (!isOpen) return null;
+
+  // --- LÓGICA INTELIGENTE DE SECCIONES ---
+  const handlePrefijoChange = async (e) => {
+    const nuevoPrefijo = e.target.value.toUpperCase();
+    setPrefijoSeccion(nuevoPrefijo);
+    
+    // Si selecciona un prefijo, pedimos el siguiente número
+    if (nuevoPrefijo && !item) { // Solo en modo creación sugerimos
+        try {
+            const res = await axios.get(`http://127.0.0.1:8000/api/siguiente-codigo/?prefijo=${nuevoPrefijo}`);
+            if (res.data.siguiente) {
+                setFormData(prev => ({
+                    ...prev,
+                    codigo_seccion_full: res.data.siguiente,
+                    // También llenamos Sección y Repisa automáticamente
+                    ubicacion_seccion: `SECCION ${nuevoPrefijo.split('-')[0].replace('S', '')}`,
+                    ubicacion_repisa: `REPISA ${nuevoPrefijo.split('-')[1].replace('R', '')}`
+                }));
+            }
+        } catch (error) {
+            console.error("Error obteniendo sugerencia:", error);
+        }
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,24 +85,25 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
     onSave(item ? item.id : null, formData);
   };
 
-  // Campos dinámicos según tipo - TODOS OPCIONALES excepto título y código
-  const fields = type === 'libros' ? [
-    { name: 'codigo_antiguo', label: 'Código Antiguo' },
-    { name: 'codigo_nuevo', label: 'Código Nuevo' },
-    { name: 'codigo_seccion_full', label: 'Código Sección' },
-    { name: 'titulo', label: 'Título' },
-    { name: 'autor', label: 'Autor' },
+  // Campos dinámicos según tipo
+  const fieldsLibros = [
+    { name: 'titulo', label: 'Título del Libro', full: true },
+    { name: 'autor', label: 'Autor(es)' },
+    { name: 'codigo_nuevo', label: 'Código Inventario' },
+    { name: 'materia', label: 'Materia' },
     { name: 'editorial', label: 'Editorial' },
     { name: 'edicion', label: 'Edición' },
     { name: 'anio', label: 'Año' },
     { name: 'facultad', label: 'Facultad' },
-    { name: 'materia', label: 'Materia' },
-    { name: 'ubicacion_seccion', label: 'Sección' },
-    { name: 'ubicacion_repisa', label: 'Repisa' },
+    { name: 'codigo_antiguo', label: 'Código Antiguo' },
+    { name: 'ubicacion_seccion', label: 'Ubicación (Texto)' },
+    { name: 'ubicacion_repisa', label: 'Repisa (Texto)' },
     { name: 'estado', label: 'Estado', type: 'select', options: ['BUENO', 'REGULAR', 'MALO', 'EN REPARACION'] },
     { name: 'observaciones', label: 'Observaciones', type: 'textarea' }
-  ] : [
-    { name: 'titulo', label: 'Título del Proyecto' },
+  ];
+
+  const fieldsTesis = [
+    { name: 'titulo', label: 'Título del Proyecto', full: true },
     { name: 'autor', label: 'Estudiante / Autor' },
     { name: 'tutor', label: 'Tutor Guía' },
     { name: 'carrera', label: 'Carrera' },
@@ -68,6 +114,8 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
     { name: 'ubicacion_seccion', label: 'Ubicación' },
     { name: 'estado', label: 'Estado Físico', type: 'select', options: ['BUENO', 'REGULAR', 'MALO', 'EN REPARACION'] }
   ];
+
+  const fields = type === 'libros' ? fieldsLibros : fieldsTesis;
 
   const isEditing = !!item;
 
@@ -99,42 +147,87 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             )}
             
             <form id="edit-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {fields.map((field) => (
-                <div key={field.name} className={field.name === 'titulo' || field.name === 'observaciones' ? 'md:col-span-2' : ''}>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wider">
-                  {field.label} {(field.name === 'titulo' || field.name === 'codigo_nuevo') && <span className="text-red-500">*</span>}
-                </label>
-                {field.type === 'select' ? (
-                    <select 
-                    name={field.name} 
-                    value={formData[field.name] || ''} 
-                    onChange={handleChange}
-                    className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                    >
-                    <option value="">-- Seleccionar --</option>
-                    {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                ) : field.type === 'textarea' ? (
-                    <textarea
-                    name={field.name}
-                    value={formData[field.name] || ''}
-                    onChange={handleChange}
-                    rows="3"
-                    placeholder="Detalles adicionales..."
-                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-vertical"
-                    />
-                ) : (
-                    <input
-                    type={field.name === 'anio' ? 'number' : 'text'}
-                    name={field.name}
-                    value={formData[field.name] || ''}
-                    onChange={handleChange}
-                    placeholder={field.name === 'codigo_nuevo' ? 'Ej: IND-001' : ''}
-                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                    />
+                
+                {/* SECCIÓN ESPECIAL PARA CÓDIGO DE UBICACIÓN (SOLO LIBROS) */}
+                {type === 'libros' && (
+                    <div className="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200 mb-2 shadow-sm">
+                        <label className="block text-sm font-bold text-blue-800 uppercase mb-3 flex items-center gap-2">
+                            <MapPin className="w-5 h-5" /> 🎯 Asistente de Ubicación Inteligente
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs text-gray-600 font-semibold block mb-2">
+                                    1️⃣ Elegir o Escribir Sección (ej: S1-R1)
+                                </label>
+                                <input 
+                                    list="secciones-list" 
+                                    className="w-full p-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold text-blue-900"
+                                    placeholder="Ej: S1-R1, S2-R3..."
+                                    value={prefijoSeccion}
+                                    onChange={handlePrefijoChange}
+                                    disabled={isEditing} // Solo sugerimos al crear
+                                />
+                                <datalist id="secciones-list">
+                                    {seccionesDisponibles.map(s => <option key={s} value={s} />)}
+                                </datalist>
+                                <p className="text-xs text-gray-500 mt-1">Selecciona de la lista o escribe una nueva</p>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-600 font-semibold block mb-2">
+                                    2️⃣ Código Generado Automáticamente (Editable)
+                                </label>
+                                <input 
+                                    name="codigo_seccion_full"
+                                    value={formData.codigo_seccion_full || ''}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border-2 border-green-300 rounded-lg font-bold text-green-700 text-lg bg-green-50 focus:ring-2 focus:ring-green-500"
+                                    placeholder="Se generará automáticamente..."
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {formData.codigo_seccion_full ? '✅ Código sugerido (puedes editarlo)' : '⏳ Esperando sección...'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 )}
-                </div>
-            ))}
+
+                {/* RESTO DE CAMPOS */}
+                {fields.map((field) => (
+                    <div key={field.name} className={field.full || field.name === 'observaciones' ? 'md:col-span-2' : ''}>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1 tracking-wider">
+                      {field.label} {(field.name === 'titulo' || field.name === 'codigo_nuevo') && <span className="text-red-500">*</span>}
+                    </label>
+                    {field.type === 'select' ? (
+                        <select 
+                        name={field.name} 
+                        value={formData[field.name] || ''} 
+                        onChange={handleChange}
+                        className="w-full p-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                        >
+                        <option value="">-- Seleccionar --</option>
+                        {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                    ) : field.type === 'textarea' ? (
+                        <textarea
+                        name={field.name}
+                        value={formData[field.name] || ''}
+                        onChange={handleChange}
+                        rows="3"
+                        placeholder="Detalles adicionales..."
+                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-vertical"
+                        />
+                    ) : (
+                        <input
+                        type={field.name === 'anio' ? 'number' : 'text'}
+                        name={field.name}
+                        value={formData[field.name] || ''}
+                        onChange={handleChange}
+                        placeholder={field.name === 'codigo_nuevo' ? 'Ej: IND-001' : ''}
+                        className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                        />
+                    )}
+                    </div>
+                ))}
             </form>
         </div>
 
