@@ -30,6 +30,8 @@ class Command(BaseCommand):
 
         print(f"Procesando hoja completa con {len(df)} filas...")
         creados = 0
+        omitidos = 0
+        numeros_procesados_tesis = set()  # Para evitar duplicados en tesis
 
         # Usamos transaction para velocidad
         with transaction.atomic():
@@ -40,45 +42,82 @@ class Command(BaseCommand):
                     if not titulo or titulo.lower() == 'nan':
                         continue
 
-                    # 2. Preparar Datos
-                    raw_codigo = str(row.get('CODIGO NUEVO', '')).strip()
-                    # Si el código es 'nan' o vacío, lo dejamos como None (vacío real)
-                    codigo = None if (not raw_codigo or raw_codigo.lower() == 'nan') else raw_codigo
-
-                    # Mapeo común
-                    defaults = {
-                        'titulo': titulo,
-                        'autor': str(row.get('AUTOR', '')).strip(),
-                        'editorial': str(row.get('EDITORIAL', '')).strip(),
-                        'edicion': str(row.get('EDICIÓN', '')).strip(),
-                        'anio': self.parse_anio(row.get('AÑO')),
-                        'facultad': str(row.get('FACULTAD', '')).strip(),
-                        'materia': str(row.get('MATERIA', '')).strip(),
-                        'codigo_antiguo': str(row.get('CODIGO ANTIGUO', '')).strip(),
-                        'codigo_seccion_full': str(row.get('CODIGO DE SECCION', '')).strip(),
-                        'ubicacion_seccion': str(row.get('SECCIÓN', '')).strip(),
-                        'ubicacion_repisa': str(row.get('REPISA', '')).strip(),
-                        'estado': self.normalizar_estado(str(row.get('ESTADO', 'REGULAR'))),
-                        'observaciones': str(row.get('OBSERVACIONES', '')).strip(),
-                    }
-
+                    # ==========================================
+                    # LOGICA LIBROS (INTOCABLE - MODO ESPEJO)
+                    # ==========================================
                     if tipo == 'libro':
+                        # 2. Preparar Datos
+                        raw_codigo = str(row.get('CODIGO NUEVO', '')).strip()
+                        codigo = None if (not raw_codigo or raw_codigo.lower() == 'nan') else raw_codigo
+
+                        defaults = {
+                            'titulo': titulo,
+                            'autor': str(row.get('AUTOR', '')).strip(),
+                            'editorial': str(row.get('EDITORIAL', '')).strip(),
+                            'edicion': str(row.get('EDICIÓN', '')).strip(),
+                            'anio': self.parse_anio(row.get('AÑO')),
+                            'facultad': str(row.get('FACULTAD', '')).strip(),
+                            'materia': str(row.get('MATERIA', '')).strip(),
+                            'codigo_antiguo': str(row.get('CODIGO ANTIGUO', '')).strip(),
+                            'codigo_seccion_full': str(row.get('CODIGO DE SECCION', '')).strip(),
+                            'ubicacion_seccion': str(row.get('SECCIÓN', '')).strip(),
+                            'ubicacion_repisa': str(row.get('REPISA', '')).strip(),
+                            'estado': self.normalizar_estado(str(row.get('ESTADO', 'REGULAR'))),
+                            'observaciones': str(row.get('OBSERVACIONES', '')).strip(),
+                        }
+                        
                         # MODO ESPEJO: Crear SIEMPRE (sin importar duplicados)
                         Libro.objects.create(codigo_nuevo=codigo, **defaults)
                         creados += 1
 
+                    # ==========================================
+                    # LOGICA TESIS (ESTRICTA - SOLO N° 1-599 ÚNICOS)
+                    # ==========================================
                     elif tipo == 'tesis':
-                        # Lógica Tesis
+                        # FILTRO ESTRICTO: Debe tener número válido en columna N°
+                        raw_n = str(row.get('N°', row.get('Nº', ''))).strip()
+                        
+                        # Si no tiene número válido, OMITIR
+                        if not raw_n or raw_n.lower() == 'nan':
+                            omitidos += 1
+                            continue
+                        
+                        # Verificar que sea numérico y esté en rango 1-599
+                        try:
+                            n = int(float(raw_n))
+                            if n < 1 or n > 599:
+                                omitidos += 1
+                                continue
+                            
+                            # NO REPETIR NÚMEROS (garantiza máximo 599 únicos)
+                            if n in numeros_procesados_tesis:
+                                omitidos += 1
+                                continue
+                            
+                            numeros_procesados_tesis.add(n)
+                            
+                        except (ValueError, TypeError):
+                            omitidos += 1
+                            continue
+                        
+                        # Preparar código
+                        raw_codigo = str(row.get('CODIGO NUEVO', '')).strip()
+                        if not raw_codigo:
+                            raw_codigo = str(row.get('CODIGO NUEVO ', '')).strip()
+                        codigo = None if (not raw_codigo or raw_codigo.lower() == 'nan') else raw_codigo
+
+                        # Preparar datos de tesis
                         defaults_tesis = {
                             'titulo': titulo,
                             'autor': str(row.get('ESTUDIANTE', '')).strip(),
                             'tutor': str(row.get('TUTOR', '')).strip(),
                             'modalidad': str(row.get('MODALIDAD', '')).strip(),
-                            'carrera': str(row.get('CARRERA', '')).strip(),
+                            'carrera': str(row.get('CARRERA', row.get('CARRERA ', ''))).strip(),
                             'facultad': str(row.get('FACULTAD', '')).strip(),
                             'anio': self.parse_anio(row.get('AÑO')),
                             'estado': self.normalizar_estado(str(row.get('ESTADO', 'REGULAR'))),
                         }
+                        
                         if codigo:
                             TrabajoGrado.objects.update_or_create(codigo_nuevo=codigo, defaults=defaults_tesis)
                         else:
@@ -88,7 +127,7 @@ class Command(BaseCommand):
                 except Exception as e:
                     print(f"Error fila {index}: {e}")
 
-        self.stdout.write(self.style.SUCCESS(f'✅ CARGA COMPLETA: Se procesaron {creados} registros válidos.'))
+        self.stdout.write(self.style.SUCCESS(f'✅ CARGA COMPLETA: Se procesaron {creados} registros válidos. Omitidos: {omitidos}'))
 
     def parse_anio(self, value):
         try:
