@@ -245,28 +245,25 @@ const Libros = () => {
                       />
                   </td>
                   
-                  {/* COLUMNA 1: CÓDIGOS (CORREGIDA CON VALIDACIONES) */}
-                  <td className="p-4 align-top">
-                    <div className="flex flex-col gap-1">
-                        {/* Código Nuevo - Principal con DEBUG */}
-                        <span className="font-bold text-blue-700 text-md">
-                            {libro.codigo_nuevo && libro.codigo_nuevo.toString().trim() !== "" 
-                              ? libro.codigo_nuevo 
-                              : <span className="text-red-500 font-bold">⚠️ VACÍO (ID: {libro.id})</span>
-                            }
-                        </span>
+                  {/* COLUMNA 1: CÓDIGOS (SIMPLIFICADA PARA VISUALIZACIÓN) */}
+                  <td className="p-4 align-top min-w-[180px]">
+                    <div className="flex flex-col gap-2">
+                        {/* 1. Código Nuevo (Negrita Azul) */}
+                        <div className="font-bold text-blue-700 text-base">
+                            {libro.codigo_nuevo || 'S/C'}
+                        </div>
                         
-                        {/* Código Antiguo */}
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Hash className="w-3 h-3" /> 
+                        {/* 2. Código Antiguo (Gris pequeño) */}
+                        <div className="text-xs text-gray-500">
+                            <Hash className="w-3 h-3 inline mr-1" />
                             Ant: {libro.codigo_antiguo || '-'}
-                        </span>
+                        </div>
                         
-                        {/* Código Sección (Ubicación física) */}
-                        <span className="text-xs text-gray-500 flex items-center gap-1 font-mono bg-gray-100 px-1 rounded w-max">
-                            <Layers className="w-3 h-3" /> 
-                            {libro.codigo_seccion_full || '-'}
-                        </span>
+                        {/* 3. Ubicación Física (Código Sección - Destacado) */}
+                        <div className="text-sm font-mono bg-blue-100 px-2 py-1 rounded border border-blue-300 text-blue-800 font-bold inline-block">
+                            <Layers className="w-3 h-3 inline mr-1" />
+                            {libro.codigo_seccion_full || 'S/Ubicación'}
+                        </div>
                     </div>
                   </td>
 
