@@ -2,7 +2,6 @@
 -- SISTEMA DE INVENTARIO DE BIBLIOTECA UPDS
 -- Base de Datos Normalizada (3NF) - PostgreSQL
 -- ============================================================
--- Autor: Sistema de Inventario Biblioteca
 -- Fecha: 2025-11-20
 -- Versión: 1.0
 -- Descripción: Esquema completo con herencia, auditoría y seguridad
