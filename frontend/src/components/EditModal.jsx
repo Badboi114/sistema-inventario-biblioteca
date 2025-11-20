@@ -59,12 +59,30 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             const res = await axios.get(`http://127.0.0.1:8000/api/siguiente-codigo/?tipo=${type}&prefijo=${nuevoPrefijo}`);
             if (res.data.siguiente) {
                 if (type === 'libros') {
+                    // --- LÓGICA BLINDADA PARA SEPARAR S1-R1 ---
+                    let seccion = '';
+                    let repisa = '';
+                    
+                    // Solo intentamos dividir si tiene el formato correcto (con guion)
+                    if (nuevoPrefijo.includes('-')) {
+                        const partes = nuevoPrefijo.split('-');
+                        // Parte 1: S1 -> SECCION 1
+                        if (partes[0]) {
+                            const numeroSeccion = partes[0].replace(/S/i, '');
+                            if (numeroSeccion) seccion = `SECCION ${numeroSeccion}`;
+                        }
+                        // Parte 2: R1 -> REPISA 1
+                        if (partes[1]) {
+                            const numeroRepisa = partes[1].replace(/R/i, '');
+                            if (numeroRepisa) repisa = `REPISA ${numeroRepisa}`;
+                        }
+                    }
+
                     setFormData(prev => ({
                         ...prev,
                         codigo_seccion_full: res.data.siguiente,
-                        // También llenamos Sección y Repisa automáticamente
-                        ubicacion_seccion: `SECCION ${nuevoPrefijo.split('-')[0].replace('S', '')}`,
-                        ubicacion_repisa: `REPISA ${nuevoPrefijo.split('-')[1].replace('R', '')}`
+                        ubicacion_seccion: seccion, // Si falla, queda vacío (no explota)
+                        ubicacion_repisa: repisa
                     }));
                 } else {
                     // Para Tesis, llenamos el CODIGO NUEVO
