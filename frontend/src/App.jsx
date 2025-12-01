@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { LayoutDashboard, BookOpen, GraduationCap, AlertCircle, Menu, LogOut, History } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, AlertCircle, Menu, LogOut, History, User, Clock, Users } from 'lucide-react';
 import Libros from './components/Libros';
 import Tesis from './components/Tesis';
 import Historial from './components/Historial';
 import Login from './components/Login';
+import PerfilModal from './components/PerfilModal';
+import Prestamos from './components/Prestamos';
+import Estudiantes from './components/Estudiantes';
 
 function App() {
   // --- ESTADOS ---
@@ -14,6 +17,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState('dashboard');
+  const [perfilOpen, setPerfilOpen] = useState(false);
 
   // --- EFECTOS ---
 
@@ -102,6 +106,22 @@ function App() {
           </button>
 
           <button 
+            onClick={() => setCurrentView('prestamos')}
+            className={`w-full flex items-center p-3 rounded-lg transition-colors ${currentView === 'prestamos' ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800'}`}
+          >
+            <Clock className="w-5 h-5" />
+            {sidebarOpen && <span className="ml-3 font-medium">Préstamos</span>}
+          </button>
+
+          <button 
+            onClick={() => setCurrentView('estudiantes')}
+            className={`w-full flex items-center p-3 rounded-lg transition-colors ${currentView === 'estudiantes' ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800'}`}
+          >
+            <Users className="w-5 h-5" />
+            {sidebarOpen && <span className="ml-3 font-medium">Estudiantes</span>}
+          </button>
+
+          <button 
             onClick={() => setCurrentView('historial')}
             className={`w-full flex items-center p-3 rounded-lg transition-colors ${currentView === 'historial' ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800'}`}
           >
@@ -110,8 +130,18 @@ function App() {
           </button>
         </nav>
 
-        {/* Footer Sidebar con Logout */}
-        <div className="p-4 border-t border-gray-700 bg-gray-900">
+        {/* Footer Sidebar con Perfil y Logout */}
+        <div className="p-4 border-t border-gray-700 bg-gray-900 space-y-2">
+            {/* Botón Mi Perfil */}
+            <button 
+                onClick={() => setPerfilOpen(true)}
+                className="w-full flex items-center justify-center p-2 text-blue-300 hover:bg-blue-900/50 rounded-lg transition-colors"
+            >
+                <User className="w-5 h-5" />
+                {sidebarOpen && <span className="ml-3 font-medium">Mi Perfil</span>}
+            </button>
+            
+            {/* Botón Cerrar Sesión */}
             <button 
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center p-2 text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
@@ -216,9 +246,22 @@ function App() {
         {/* VISTA: TESIS */}
         {currentView === 'tesis' && <Tesis />}
 
+        {/* VISTA: PRÉSTAMOS */}
+        {currentView === 'prestamos' && <Prestamos />}
+
+        {/* VISTA: ESTUDIANTES */}
+        {currentView === 'estudiantes' && <Estudiantes />}
+
         {/* VISTA: HISTORIAL */}
         {currentView === 'historial' && <Historial />}
       </main>
+
+      {/* MODAL DE PERFIL */}
+      <PerfilModal 
+        isOpen={perfilOpen} 
+        onClose={() => setPerfilOpen(false)} 
+        onLogout={handleLogout} 
+      />
     </div>
   );
 }

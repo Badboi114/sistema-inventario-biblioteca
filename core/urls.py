@@ -19,7 +19,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from inventario.views import (
     LibroViewSet, TrabajoGradoViewSet, DashboardStatsView, 
-    HistorialView, RestaurarRegistroView, SiguienteCodigoView, ListaSeccionesView
+    HistorialView, RestaurarRegistroView, SiguienteCodigoView, ListaSeccionesView,
+    PerfilUsuarioView, ActivoViewSet, EstudianteViewSet, PrestamoViewSet
 )
 # Importamos las vistas de Token
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -28,6 +29,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 router = DefaultRouter()
 router.register(r'libros', LibroViewSet, basename='libro')
 router.register(r'tesis', TrabajoGradoViewSet, basename='trabajogrado')
+router.register(r'activos', ActivoViewSet, basename='activo')
+router.register(r'estudiantes', EstudianteViewSet, basename='estudiante')
+router.register(r'prestamos', PrestamoViewSet, basename='prestamo')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -37,6 +41,9 @@ urlpatterns = [
     # RUTAS DE LOGIN
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # RUTA DE PERFIL DE USUARIO
+    path('api/perfil/', PerfilUsuarioView.as_view(), name='perfil-usuario'),
     
     # RUTAS DE HISTORIAL Y RESTAURACIÓN
     path('api/historial/', HistorialView.as_view(), name='historial'),

@@ -2,12 +2,19 @@ from django.shortcuts import render
 from rest_framework import viewsets, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Case, When, Value, BooleanField
+from django.utils import timezone
 import traceback
 import re
-from .models import Libro, TrabajoGrado
-from .serializers import LibroSerializer, TrabajoGradoSerializer
+from .models import Libro, TrabajoGrado, ActivoBibliografico, Estudiante, Prestamo
+from .serializers import (
+    LibroSerializer, TrabajoGradoSerializer, ActivoSelectSerializer,
+    EstudianteSerializer, PrestamoSerializer
+)
 
 
 class LibroViewSet(viewsets.ModelViewSet):
@@ -398,3 +405,141 @@ class ListaSeccionesView(APIView):
                             secciones.add(partes[0].upper())
         
         return Response(sorted(list(secciones)))
+
+
+class PerfilUsuarioView(APIView):
+    """
+    Vista para gestionar el perfil del usuario autenticado.
+    Permite ver y actualizar datos personales y contraseña.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Devolver datos del usuario actual"""
+        user = request.user
+        data = {
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
+        return Response(data)
+
+    def patch(self, request):
+        """Actualizar datos del usuario actual"""
+        user = request.user
+        data = request.data
+
+        # Actualizar campos básicos
+        if 'username' in data:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+
+        # Actualizar contraseña (solo si se envía y no está vacía)
+        if 'password' in data and data['password']:
+            user.set_password(data['password'])
+            user.save()
+            return Response({
+                'mensaje': 'Perfil y contraseña actualizados. Vuelve a iniciar sesión.',
+                'password_changed': True
+            })
+        
+        user.save()
+        return Response({
+            'mensaje': 'Perfil actualizado correctamente',
+            'password_changed': False
+        })
+
+
+class ActivoViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Vista de solo lectura para buscar activos bibliográficos (libros y tesis).
+    Usada para el selector de préstamos.
+    """
+    queryset = ActivoBibliografico.objects.all()
+    serializer_class = ActivoSelectSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['titulo', 'codigo_nuevo', 'autor']
+    pagination_class = None
+
+
+class EstudianteViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar estudiantes.
+    Permite crear, leer, actualizar y eliminar estudiantes.
+    """
+    queryset = Estudiante.objects.all()
+    serializer_class = EstudianteSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['nombre_completo', 'carnet_universitario', 'ci', 'carrera']
+    pagination_class = None
+
+
+class PrestamoViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar préstamos de libros y tesis.
+    Implementa reglas de negocio:
+    - Las tesis SOLO se pueden prestar para consulta en sala
+    - Los libros se pueden prestar en sala o a domicilio
+    """
+    queryset = Prestamo.objects.all().order_by('-fecha_prestamo')
+    serializer_class = PrestamoSerializer
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = [
+        'estudiante__nombre_completo', 
+        'estudiante__carnet_universitario',
+        'activo__titulo', 
+        'activo__codigo_nuevo'
+    ]
+    filterset_fields = {
+        'estado': ['exact'],
+        'tipo': ['exact'],
+    }
+    pagination_class = None
+
+    def perform_create(self, serializer):
+        """
+        Validar reglas de negocio al crear un préstamo.
+        REGLA CRÍTICA: Las tesis NO se pueden prestar a domicilio.
+        """
+        activo = serializer.validated_data['activo']
+        tipo_prestamo = serializer.validated_data['tipo']
+
+        # Validar: TESIS SOLO EN SALA
+        if activo.tipo_activo == 'TESIS' and tipo_prestamo == 'DOMICILIO':
+            raise ValidationError({
+                "tipo": "🚫 Las Tesis NO se pueden prestar a domicilio. Solo consulta en Sala."
+            })
+
+        # Asignar usuario que registra el préstamo
+        serializer.save(usuario_prestamo=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def devolver(self, request, pk=None):
+        """
+        Acción personalizada para marcar un libro como devuelto.
+        """
+        prestamo = self.get_object()
+        
+        if prestamo.estado == 'DEVUELTO':
+            return Response(
+                {'error': 'Este material ya fue devuelto'},
+                status=400
+            )
+        
+        prestamo.estado = 'DEVUELTO'
+        prestamo.fecha_devolucion_real = timezone.now()
+        prestamo.save()
+        
+        # Mensaje según el tipo de garantía
+        if prestamo.tipo == 'SALA':
+            mensaje = 'Material devuelto exitosamente. Entregar Carnet Universitario al estudiante.'
+        else:
+            mensaje = 'Material devuelto exitosamente. Entregar Cédula de Identidad al estudiante.'
+        
+        return Response({'mensaje': mensaje})
