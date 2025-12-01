@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, MapPin, GraduationCap, AlertCircle, User, Users, Award, Trash2, Edit, Plus, Building2, Briefcase, Calendar } from 'lucide-react';
+import { Search, MapPin, GraduationCap, AlertCircle, User, Users, Award, Trash2, Edit, Plus, Building2, Briefcase, Calendar, BookOpen } from 'lucide-react';
 import { Menu, Item, useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
 import Swal from 'sweetalert2';
 import FilterBar from './FilterBar';
 import EditModal from './EditModal';
+import { useCart } from '../context/CartContext';
 
-const Tesis = () => {
+const Tesis = ({ onNavigateToPrestamos }) => {
   const [tesis, setTesis] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -17,8 +18,8 @@ const Tesis = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   
-  // Selección múltiple
-  const [selectedIds, setSelectedIds] = useState([]);
+  // Carrito de préstamos
+  const { cart, toggleItem } = useCart();
 
   // Menú Contextual
   const { show } = useContextMenu({ id: 'menu-tesis' });
@@ -150,16 +151,19 @@ const Tesis = () => {
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
             <GraduationCap className="mr-2 text-green-600" /> Proyectos de Grado y Tesis
           </h2>
-          {selectedIds.length > 0 && (
+          
+          {/* BOTÓN PRESTAR SELECCIONADOS */}
+          {cart.filter(item => item.tipo === 'TESIS').length > 0 && (
             <button 
-              onClick={() => handleDelete(selectedIds)}
-              className="bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-red-200 transition-colors"
+              onClick={onNavigateToPrestamos}
+              className="bg-orange-500 text-white px-4 py-2 rounded-lg font-bold flex items-center shadow-lg hover:bg-orange-600 transition-all animate-pulse"
             >
-              <Trash2 className="w-4 h-4" /> Eliminar ({selectedIds.length})
+              <BookOpen className="w-5 h-5 mr-2" /> 
+              Prestar ({cart.filter(item => item.tipo === 'TESIS').length}) Seleccionados
             </button>
           )}
           
-          {/* --- BOTÓN NUEVO --- */}
+          {/* BOTÓN NUEVO */}
           <button 
             onClick={handleCreateNew}
             className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-green-700 transition-colors shadow-sm"
@@ -194,12 +198,7 @@ const Tesis = () => {
             <thead>
               <tr className="bg-green-50 text-gray-700 text-sm uppercase border-b border-green-100">
                 <th className="p-4 w-10">
-                  <input 
-                    type="checkbox" 
-                    onChange={toggleSelectAll}
-                    checked={selectedIds.length === tesis.length && tesis.length > 0}
-                    className="w-4 h-4 cursor-pointer"
-                  />
+                  <BookOpen className="w-4 h-4 text-orange-500" title="Marcar para prestar" />
                 </th>
                 <th className="p-4">Código</th>
                 <th className="p-4">Título / Modalidad</th>
@@ -214,15 +213,16 @@ const Tesis = () => {
               {tesis.map((item) => (
                 <tr 
                   key={item.id} 
-                  className={`hover:bg-green-50 transition-colors cursor-pointer ${selectedIds.includes(item.id) ? 'bg-green-100' : ''}`}
+                  className={`hover:bg-green-50 transition-colors cursor-pointer ${cart.find(c => c.id === item.id) ? 'bg-orange-100 border-l-4 border-orange-500' : ''}`}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                 >
                   <td className="p-4" onClick={(e) => e.stopPropagation()}>
                     <input 
                       type="checkbox" 
-                      checked={selectedIds.includes(item.id)} 
-                      onChange={() => toggleSelect(item.id)}
-                      className="w-4 h-4 cursor-pointer"
+                      className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                      checked={!!cart.find(c => c.id === item.id)} 
+                      onChange={() => toggleItem({...item, tipo: 'TESIS'})}
+                      title="Marcar para prestar"
                     />
                   </td>
                   <td className="p-4 font-bold text-green-700 whitespace-nowrap">

@@ -52,13 +52,16 @@ function App() {
   }, [isAuthenticated, currentView]);
 
   // --- FUNCIONES ---
-  // --- FUNCIONES ---
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     delete axios.defaults.headers.common['Authorization'];
     setIsAuthenticated(false);
     setCurrentView('dashboard');
+  };
+
+  const handleGoToPrestamos = () => {
+    setCurrentView('prestamos');
   };
 
   // --- RENDERIZADO ---
@@ -160,8 +163,12 @@ function App() {
                     <Menu className="w-6 h-6" />
                 </button>
                 <h1 className="text-2xl font-bold text-gray-800">
-                  {currentView === 'dashboard' ? 'Panel de Control' : 
-                   currentView === 'libros' ? 'Catálogo de Libros' : 'Proyectos de Grado'}
+                  {currentView === 'dashboard' && 'Panel de Control'}
+                  {currentView === 'libros' && 'Catálogo de Libros'}
+                  {currentView === 'tesis' && 'Proyectos de Grado'}
+                  {currentView === 'estudiantes' && 'Registro de Estudiantes'}
+                  {currentView === 'prestamos' && 'Gestión de Préstamos'}
+                  {currentView === 'historial' && 'Auditoría del Sistema'}
                 </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -241,10 +248,10 @@ function App() {
         )}
 
         {/* VISTA: LIBROS */}
-        {currentView === 'libros' && <Libros />}
+        {currentView === 'libros' && <Libros onNavigateToPrestamos={handleGoToPrestamos} />}
 
         {/* VISTA: TESIS */}
-        {currentView === 'tesis' && <Tesis />}
+        {currentView === 'tesis' && <Tesis onNavigateToPrestamos={handleGoToPrestamos} />}
 
         {/* VISTA: PRÉSTAMOS */}
         {currentView === 'prestamos' && <Prestamos />}

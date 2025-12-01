@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, User, BookOpen, CheckCircle, Clock, AlertTriangle, Plus, X, FileText, PenTool, Save, Hash } from 'lucide-react';
+import { Search, User, BookOpen, CheckCircle, Clock, AlertTriangle, Plus, X, FileText, PenTool, Save, Hash, Calendar } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useCart } from '../context/CartContext';
 
 const Prestamos = () => {
   const [prestamos, setPrestamos] = useState([]);
@@ -26,6 +27,9 @@ const Prestamos = () => {
   // Catálogos
   const [estudiantesDisponibles, setEstudiantesDisponibles] = useState([]);
   const [librosDisponibles, setLibrosDisponibles] = useState([]);
+
+  // Carrito de préstamos
+  const { cart, removeFromCart, clearCart } = useCart();
 
   // Cargar lista inicial de préstamos
   const fetchPrestamos = async () => {
@@ -56,6 +60,14 @@ const Prestamos = () => {
   };
 
   useEffect(() => { fetchPrestamos(); }, [busqueda]);
+
+  // Auto-abrir modal si hay items en el carrito
+  useEffect(() => {
+      if (cart.length > 0 && !modalOpen) {
+          setModalOpen(true);
+          cargarCatalogos();
+      }
+  }, [cart.length]);
 
   // --- MAGIA: DETECTAR SI EL ESTUDIANTE YA EXISTE AL ESCRIBIR EL CI ---
   useEffect(() => {
@@ -102,40 +114,74 @@ const Prestamos = () => {
   const handleCrearPrestamo = async (e) => {
       e.preventDefault();
       
-      if (!ciInput || !nombreInput || !libroSeleccionado) {
-          Swal.fire('Faltan datos', 'Ingresa CI, Nombre y selecciona un Libro.', 'warning');
+      if (!ciInput || !nombreInput) {
+          Swal.fire('Faltan datos', 'Ingresa CI y Nombre del estudiante.', 'warning');
+          return;
+      }
+
+      if (cart.length === 0 && !libroSeleccionado) {
+          Swal.fire('Sin materiales', 'Selecciona al menos un libro o tesis.', 'warning');
           return;
       }
 
       try {
           const token = localStorage.getItem('token');
-          const payload = {
-              activo: libroSeleccionado.id,
-              tipo: tipoPrestamo,
-              observaciones: observaciones
-          };
           
-          // Si encontramos uno existente, mandamos su ID. Si no, mandamos datos para crear
-          if (estudianteEncontrado) {
-              payload.estudiante = estudianteEncontrado.id;
-          } else {
-              payload.nuevo_nombre = nombreInput;
-              payload.nuevo_ci = ciInput;
-              // nuevo_carrera: NO SE ENVÍA (El backend pondrá "No especificada")
+          // Preparar lista de materiales a prestar
+          const materiales = cart.length > 0 ? cart : (libroSeleccionado ? [libroSeleccionado] : []);
+          
+          let exitosos = 0;
+          let fallidos = 0;
+          
+          // Procesar cada material del carrito
+          for (const material of materiales) {
+              try {
+                  const payload = {
+                      activo: material.id,
+                      tipo: tipoPrestamo,
+                      observaciones: observaciones
+                  };
+                  
+                  // Si encontramos uno existente, mandamos su ID. Si no, mandamos datos para crear
+                  if (estudianteEncontrado) {
+                      payload.estudiante = estudianteEncontrado.id;
+                  } else {
+                      payload.nuevo_nombre = nombreInput;
+                      payload.nuevo_ci = ciInput;
+                      // nuevo_carrera: NO SE ENVÍA (El backend pondrá "No especificada")
+                  }
+                  
+                  await axios.post('http://127.0.0.1:8000/api/prestamos/', payload, {
+                      headers: { Authorization: `Bearer ${token}` }
+                  });
+                  
+                  exitosos++;
+              } catch (error) {
+                  console.error(`Error prestando ${material.titulo}:`, error);
+                  fallidos++;
+              }
           }
           
-          await axios.post('http://127.0.0.1:8000/api/prestamos/', payload, {
-              headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          Swal.fire({
-              title: '¡Listo!',
-              text: estudianteEncontrado ? 'Préstamo registrado.' : 'Estudiante nuevo registrado y préstamo creado.',
-              icon: 'success',
-              timer: 2000
-          });
+          // Limpiar carrito y cerrar modal
+          clearCart();
           setModalOpen(false);
           fetchPrestamos();
+          
+          // Mensaje de resultado
+          if (fallidos === 0) {
+              Swal.fire({
+                  title: '¡Éxito!',
+                  text: `${exitosos} préstamo(s) registrado(s) con fecha y hora actual.`,
+                  icon: 'success',
+                  timer: 2500
+              });
+          } else {
+              Swal.fire({
+                  title: 'Parcialmente completado',
+                  text: `${exitosos} exitosos, ${fallidos} fallidos.`,
+                  icon: 'warning'
+              });
+          }
       } catch (error) {
           console.error('Error:', error);
           const errorMsg = error.response?.data?.error || 
@@ -151,7 +197,7 @@ const Prestamos = () => {
           const res = await axios.post(`http://127.0.0.1:8000/api/prestamos/${id}/devolver/`, {}, {
              headers: { Authorization: `Bearer ${token}` }
           });
-          Swal.fire('Libro Devuelto', 'Entrega el documento de garantía al estudiante.', 'success');
+                              Swal.fire('Devuelto', 'Se ha registrado la hora de devolución.', 'success');
           fetchPrestamos();
       } catch (error) { console.error(error); }
   };
@@ -169,6 +215,22 @@ const Prestamos = () => {
           return codigo.includes(termino) || titulo.includes(termino);
         }).slice(0, 10) // Aumentamos a 10 sugerencias para mayor visibilidad
       : [];
+
+  // Función para formatear fecha y hora (Forzada a Bolivia)
+  const formatDateTime = (dateString) => {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      
+      return date.toLocaleString('es-BO', {
+          timeZone: 'America/La_Paz', // Forzar hora boliviana
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false // Formato 24 horas
+      });
+  };
 
   const formatFecha = (fecha) => {
     return new Date(fecha).toLocaleDateString('es-BO', {
@@ -251,14 +313,24 @@ const Prestamos = () => {
                             </div>
                         </td>
                         <td className="p-4 text-xs">
-                            <div>Salida: {new Date(p.fecha_prestamo).toLocaleDateString()}</div>
-                            <div className={`font-bold ${new Date() > new Date(p.fecha_devolucion_estimada) && p.estado !== 'DEVUELTO' ? 'text-red-600' : 'text-green-600'}`}>
-                                Límite: {new Date(p.fecha_devolucion_estimada).toLocaleDateString()}
+                            <div className="flex flex-col gap-1">
+                                <div className="text-gray-600">
+                                    <span className="font-bold">Salida:</span> {formatDateTime(p.fecha_prestamo)}
+                                </div>
+                                {p.estado === 'DEVUELTO' ? (
+                                    <div className="text-green-700 bg-green-50 px-1 rounded w-fit border border-green-200">
+                                        <span className="font-bold">Volvió:</span> {formatDateTime(p.fecha_devolucion_real)}
+                                    </div>
+                                ) : (
+                                    <div className={`font-bold ${new Date() > new Date(p.fecha_devolucion_estimada) ? 'text-red-600' : 'text-blue-600'}`}>
+                                        <span className="font-bold">Límite:</span> {formatDateTime(p.fecha_devolucion_estimada)}
+                                    </div>
+                                )}
                             </div>
                         </td>
                         <td className="p-4">
-                            {p.estado === 'VIGENTE' && <span className="text-green-600 font-bold flex items-center gap-1"><Clock className="w-3 h-3" /> Activo</span>}
-                            {p.estado === 'DEVUELTO' && <span className="text-gray-500 font-bold flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Cerrado</span>}
+                            {p.estado === 'VIGENTE' && <span className="text-green-600 font-bold text-xs bg-green-100 px-2 py-1 rounded flex items-center gap-1 w-fit"><Clock className="w-3 h-3" /> ACTIVO</span>}
+                            {p.estado === 'DEVUELTO' && <span className="text-gray-500 font-bold text-xs bg-gray-100 px-2 py-1 rounded flex items-center gap-1 w-fit"><CheckCircle className="w-3 h-3" /> CERRADO</span>}
                         </td>
                         <td className="p-4 text-center">
                             {p.estado !== 'DEVUELTO' && (
@@ -347,17 +419,56 @@ const Prestamos = () => {
                         )}
                     </div>
 
-                    {/* 2. BUSCADOR DE LIBRO/TESIS */}
-                    <div className="relative">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">2. Material (Código o Título)</label>
-                        {!libroSeleccionado ? (
+                    {/* 2. MATERIALES A PRESTAR (CARRITO + BÚSQUEDA) */}
+                    <div className="space-y-3">
+                        <label className="block text-xs font-bold text-gray-500 uppercase">2. Materiales a Prestar</label>
+                        
+                        {/* LISTA DEL CARRITO */}
+                        {cart.length > 0 && (
+                            <div className="bg-orange-50 p-3 rounded-xl border-2 border-orange-200">
+                                <h4 className="font-bold text-orange-800 text-xs uppercase mb-2 flex items-center gap-1">
+                                    <BookOpen className="w-4 h-4" /> Seleccionados ({cart.length})
+                                </h4>
+                                <div className="space-y-2 max-h-40 overflow-y-auto">
+                                    {cart.map(item => (
+                                        <div key={item.id} className="flex justify-between items-center bg-white p-2 rounded border border-orange-100 shadow-sm">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                                        item.tipo === 'TESIS' 
+                                                            ? 'bg-green-100 text-green-700' 
+                                                            : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {item.tipo}
+                                                    </span>
+                                                    <span className="font-mono text-xs font-bold text-gray-600">
+                                                        {item.codigo_nuevo || 'S/C'}
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm font-medium text-gray-800 truncate">{item.titulo}</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => removeFromCart(item.id)} 
+                                                className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-colors"
+                                                title="Quitar de la lista"
+                                            >
+                                                <X className="w-4 h-4"/>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* BÚSQUEDA ADICIONAL DE MATERIALES */}
+                        <div className="relative">{!libroSeleccionado ? (
                             <>
                                 <div className="flex items-center border-2 border-gray-200 rounded-xl p-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all bg-gray-50">
-                                    <BookOpen className="w-5 h-5 text-gray-400 mr-2" />
+                                    <Search className="w-5 h-5 text-gray-400 mr-2" />
                                     <input 
                                         type="text" 
                                         className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
-                                        placeholder="Ej: S1-R1-0039 o Álgebra..."
+                                        placeholder="¿Agregar más? Busca por código o título..."
                                         value={busquedaLibro}
                                         onChange={(e) => setBusquedaLibro(e.target.value)}
                                     />
@@ -434,6 +545,7 @@ const Prestamos = () => {
                                 </button>
                             </div>
                         )}
+                        </div>
                     </div>
 
                     {/* 3. TIPO Y REQUISITOS (ALERTA VISUAL) */}
@@ -511,13 +623,13 @@ const Prestamos = () => {
                     <button onClick={() => setModalOpen(false)} className="px-5 py-2.5 text-gray-600 font-semibold hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
                     <button 
                         onClick={handleCrearPrestamo} 
-                        disabled={!ciInput || !nombreInput || !libroSeleccionado || !requisitosVerificados}
+                        disabled={!ciInput || !nombreInput || (cart.length === 0 && !libroSeleccionado) || !requisitosVerificados}
                         className={`px-5 py-2.5 text-white font-bold rounded-lg shadow-lg flex items-center gap-2 transition-all
-                            ${(!ciInput || !nombreInput || !libroSeleccionado || !requisitosVerificados) 
+                            ${(!ciInput || !nombreInput || (cart.length === 0 && !libroSeleccionado) || !requisitosVerificados) 
                                 ? 'bg-gray-400 cursor-not-allowed' 
-                                : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl'}`}
+                                : 'bg-orange-600 hover:bg-orange-700 hover:shadow-xl'}`}
                     >
-                        <Save className="w-5 h-5" /> Registrar Préstamo
+                        <Save className="w-5 h-5" /> Confirmar Préstamo{cart.length > 1 ? 's' : ''} ({cart.length > 0 ? cart.length : 1})
                     </button>
                 </div>
             </div>

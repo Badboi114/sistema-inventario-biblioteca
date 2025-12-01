@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Search, MapPin, Book, AlertCircle, Trash2, Edit, Plus, Hash, Layers, User, Calendar, Building2 } from 'lucide-react';
+import { Search, MapPin, Book, AlertCircle, Trash2, Edit, Plus, Hash, Layers, User, Calendar, Building2, BookOpen } from 'lucide-react';
 import { Menu, Item, useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
 import Swal from 'sweetalert2';
 import FilterBar from './FilterBar';
 import EditModal from './EditModal';
+import { useCart } from '../context/CartContext';
 
-const Libros = () => {
+const Libros = ({ onNavigateToPrestamos }) => {
   const [libros, setLibros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -17,8 +18,8 @@ const Libros = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   
-  // Selección múltiple
-  const [selectedIds, setSelectedIds] = useState([]);
+  // Carrito de préstamos (reemplaza selectedIds)
+  const { cart, toggleItem } = useCart();
 
   // Menú Contextual
   const { show } = useContextMenu({ id: 'menu-libros' });
@@ -157,22 +158,24 @@ const Libros = () => {
             <Book className="mr-2 text-primary" /> Catálogo de Libros
           </h2>
           
-          {/* --- BOTÓN NUEVO --- */}
+          {/* BOTÓN PRESTAR SELECCIONADOS */}
+          {cart.filter(item => item.tipo === 'LIBRO').length > 0 && (
+            <button 
+              onClick={onNavigateToPrestamos}
+              className="bg-orange-500 text-white px-4 py-2 rounded-lg font-bold flex items-center shadow-lg hover:bg-orange-600 transition-all animate-pulse"
+            >
+              <BookOpen className="w-5 h-5 mr-2" /> 
+              Prestar ({cart.filter(item => item.tipo === 'LIBRO').length}) Seleccionados
+            </button>
+          )}
+
+          {/* BOTÓN NUEVO */}
           <button 
             onClick={handleCreateNew}
             className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-green-700 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4 mr-2" /> Nuevo Libro
           </button>
-
-          {selectedIds.length > 0 && (
-            <button 
-              onClick={() => handleDelete(selectedIds)}
-              className="bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-red-200 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" /> Eliminar ({selectedIds.length})
-            </button>
-          )}
         </div>
         
         <div className="flex gap-2 w-full md:w-auto">
@@ -201,11 +204,7 @@ const Libros = () => {
             <thead>
               <tr className="bg-blue-50 text-gray-700 text-sm uppercase border-b border-blue-100 font-bold">
                 <th className="p-4 w-10">
-                    <input 
-                      type="checkbox" 
-                      onChange={toggleSelectAll}
-                      checked={selectedIds.length === libros.length && libros.length > 0} 
-                    />
+                    <BookOpen className="w-4 h-4 text-orange-500" title="Marcar para prestar" />
                 </th>
                 <th className="p-4">Códigos</th>
                 <th className="p-4">Obra / Autor</th>
@@ -218,14 +217,16 @@ const Libros = () => {
               {libros.map((libro) => (
                 <tr 
                     key={libro.id} 
-                    className={`hover:bg-blue-50 transition-colors cursor-pointer ${selectedIds.includes(libro.id) ? 'bg-blue-100' : ''}`}
+                    className={`hover:bg-blue-50 transition-colors cursor-pointer ${cart.find(item => item.id === libro.id) ? 'bg-orange-100 border-l-4 border-orange-500' : ''}`}
                     onContextMenu={(e) => handleContextMenu(e, libro)}
                 >
                   <td className="p-4 align-top" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox" 
-                        checked={selectedIds.includes(libro.id)} 
-                        onChange={() => toggleSelect(libro.id)} 
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                        checked={!!cart.find(item => item.id === libro.id)} 
+                        onChange={() => toggleItem({...libro, tipo: 'LIBRO'})} 
+                        title="Marcar para prestar"
                       />
                   </td>
                   
