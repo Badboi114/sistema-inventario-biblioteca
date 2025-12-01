@@ -483,9 +483,12 @@ class EstudianteViewSet(viewsets.ModelViewSet):
 class PrestamoViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestionar préstamos de libros y tesis.
-    Implementa reglas de negocio:
+    Implementa reglas de negocio avanzadas:
     - Las tesis SOLO se pueden prestar para consulta en sala
     - Los libros se pueden prestar en sala o a domicilio
+    - Auto-registro de estudiantes nuevos
+    - Prevención de doble préstamo
+    - Conversión automática de SALA → DOMICILIO para el mismo estudiante
     """
     queryset = Prestamo.objects.all().order_by('-fecha_prestamo')
     serializer_class = PrestamoSerializer
@@ -501,6 +504,83 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         'tipo': ['exact'],
     }
     pagination_class = None
+
+    def create(self, request, *args, **kwargs):
+        """
+        Creación inteligente de préstamos con reglas de negocio avanzadas.
+        """
+        data = request.data.copy()
+        
+        # --- 1. AUTO-REGISTRO INTELIGENTE DE ESTUDIANTE ---
+        estudiante_id = data.get('estudiante')
+        
+        # Si no viene ID, intentamos buscar por CI o crear nuevo
+        if not estudiante_id:
+            nombre = data.get('nuevo_nombre')
+            ci = data.get('nuevo_ci')
+            # Carrera ya no es obligatoria en el formulario, ponemos default
+            carrera = data.get('nuevo_carrera', 'No especificada')
+            
+            if ci:
+                # Buscamos si ya existe por CI (limpiamos espacios)
+                ci_limpio = str(ci).strip()
+                estudiante = Estudiante.objects.filter(ci=ci_limpio).first()
+                
+                if estudiante:
+                    # ¡YA EXISTÍA! Usamos este
+                    estudiante_id = estudiante.id
+                elif nombre:
+                    # NO EXISTE y tenemos nombre -> CREAR
+                    estudiante = Estudiante.objects.create(
+                        nombre_completo=nombre,
+                        ci=ci_limpio,
+                        carnet_universitario=ci_limpio,
+                        carrera=carrera
+                    )
+                    estudiante_id = estudiante.id
+                
+                data['estudiante'] = estudiante_id
+        
+        # --- 2. REGLAS DE NEGOCIO: PREVENIR DOBLE PRÉSTAMO ---
+        activo_id = data.get('activo')
+        tipo_nuevo = data.get('tipo')
+        
+        # Buscar si el libro ya está prestado y vigente
+        prestamo_actual = Prestamo.objects.filter(
+            activo_id=activo_id,
+            estado='VIGENTE'
+        ).first()
+        
+        if prestamo_actual:
+            # CASO ESPECIAL: ¿Es el mismo estudiante cambiando de SALA a DOMICILIO?
+            es_mismo_estudiante = int(prestamo_actual.estudiante.id) == int(estudiante_id)
+            es_cambio_sala_a_domicilio = prestamo_actual.tipo == 'SALA' and tipo_nuevo == 'DOMICILIO'
+            
+            if es_mismo_estudiante and es_cambio_sala_a_domicilio:
+                # ✅ Cerrar automáticamente el préstamo en SALA
+                prestamo_actual.estado = 'DEVUELTO'
+                prestamo_actual.fecha_devolucion_real = timezone.now()
+                obs_adicional = " [Auto-cerrado: Cambio a Domicilio]"
+                prestamo_actual.observaciones = (prestamo_actual.observaciones or '') + obs_adicional
+                prestamo_actual.save()
+                # Permitir continuar con la creación del nuevo préstamo
+            else:
+                # ❌ Bloquear: El libro está ocupado por otro estudiante
+                return Response(
+                    {
+                        "error": f"⚠️ El libro ya está prestado a {prestamo_actual.estudiante.nombre_completo}.",
+                        "estudiante_actual": prestamo_actual.estudiante.nombre_completo,
+                        "tipo_prestamo": prestamo_actual.tipo
+                    },
+                    status=400
+                )
+        
+        # Continuar con la creación normal
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=201, headers=headers)
 
     def perform_create(self, serializer):
         """
