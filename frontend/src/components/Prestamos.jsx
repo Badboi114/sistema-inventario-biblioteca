@@ -158,6 +158,28 @@ const Prestamos = () => {
                   exitosos++;
               } catch (error) {
                   console.error(`Error prestando ${material.titulo}:`, error);
+                  
+                  // Mostrar error específico si el backend envió detalles
+                  if (error.response?.data) {
+                      const { error: mensaje, detalle, tipo_prestamo, estudiante } = error.response.data;
+                      
+                      let texto = tipo_prestamo === 'SALA' 
+                        ? 'Este libro está siendo usado en sala de lectura' 
+                        : 'Este libro fue prestado a domicilio';
+                      
+                      await Swal.fire({
+                        icon: 'warning',
+                        title: 'Libro No Disponible',
+                        html: `
+                          <p class="text-gray-700 mb-2"><strong>${material.titulo}</strong></p>
+                          <p class="text-gray-600 mb-2">${texto}</p>
+                          <p class="text-sm text-gray-500">Prestado a: <strong>${estudiante}</strong></p>
+                        `,
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#EF4444'
+                      });
+                  }
+                  
                   fallidos++;
               }
           }

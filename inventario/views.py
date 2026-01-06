@@ -565,12 +565,19 @@ class PrestamoViewSet(viewsets.ModelViewSet):
                 prestamo_actual.save()
                 # Permitir continuar con la creación del nuevo préstamo
             else:
-                # ❌ Bloquear: El libro está ocupado por otro estudiante
+                # Bloquear: El libro está ocupado por otro estudiante
+                # Determinar el mensaje según el tipo de préstamo
+                if prestamo_actual.tipo == 'SALA':
+                    estado_texto = "está siendo usado en sala de lectura"
+                else:
+                    estado_texto = "fue prestado a domicilio"
+                
                 return Response(
                     {
-                        "error": f"⚠️ El libro ya está prestado a {prestamo_actual.estudiante.nombre_completo}.",
-                        "estudiante_actual": prestamo_actual.estudiante.nombre_completo,
-                        "tipo_prestamo": prestamo_actual.tipo
+                        "error": f"Libro no disponible: {estado_texto}",
+                        "detalle": f"El libro '{prestamo_actual.activo.titulo}' {estado_texto}",
+                        "tipo_prestamo": prestamo_actual.tipo,
+                        "estudiante": prestamo_actual.estudiante.nombre_completo
                     },
                     status=400
                 )
@@ -593,7 +600,7 @@ class PrestamoViewSet(viewsets.ModelViewSet):
         # Validar: TESIS SOLO EN SALA
         if activo.tipo_activo == 'TESIS' and tipo_prestamo == 'DOMICILIO':
             raise ValidationError({
-                "tipo": "🚫 Las Tesis NO se pueden prestar a domicilio. Solo consulta en Sala."
+                "tipo": "Las Tesis NO se pueden prestar a domicilio. Solo consulta en Sala."
             })
 
         # Asignar usuario que registra el préstamo

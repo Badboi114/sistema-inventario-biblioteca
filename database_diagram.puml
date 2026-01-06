@@ -1,0 +1,260 @@
+@startuml Sistema de Inventario Biblioteca - Diagrama de Base de Datos
+
+!define TABLE class
+!define PK <b><color:#FFD700>
+!define FK <color:#4169E1>
+!define UNIQUE <color:#32CD32>
+
+skinparam class {
+    BackgroundColor WhiteSmoke
+    BorderColor Black
+    ArrowColor Black
+}
+
+skinparam stereotypeCBackgroundColor YellowGreen
+
+' ========================================
+' MODELO BASE (Abstracto)
+' ========================================
+
+abstract class ActivoBibliografico {
+    ==Identificación==
+    PK id : Integer <<AutoIncrement>>
+    UNIQUE codigo_nuevo : String(50) <<Nullable, Indexed>>
+    codigo_antiguo : String(50) <<Nullable>>
+    
+    ==Información General==
+    titulo : String(500) <<NotNull>>
+    autor : String(300) <<Nullable>>
+    anio : Integer <<Nullable>>
+    facultad : String(255) <<Nullable>>
+    
+    ==Estado y Ubicación==
+    estado : Enum <<NotNull, Default='BUENO'>>
+        - BUENO
+        - REGULAR
+        - MALO
+        - EN REPARACION
+    observaciones : Text <<Nullable>>
+    ubicacion_seccion : String(50) <<Nullable>>
+    ubicacion_repisa : String(50) <<Nullable>>
+    
+    ==Auditoría==
+    fecha_registro : DateTime <<AutoNow>>
+    
+    ==Métodos==
+    + tipo_activo() : String {LIBRO|TESIS|OTRO}
+}
+
+note right of ActivoBibliografico
+  **Clase Base Abstracta**
+  Herencia: Table Per Type (TPT)
+  
+  Reglas de Negocio:
+  - codigo_nuevo puede ser NULL
+    (múltiples registros sin código)
+  - Códigos existentes son únicos
+  - Auditoría con django-simple-history
+end note
+
+' ========================================
+' MODELOS CONCRETOS (Herencia)
+' ========================================
+
+class Libro {
+    ==Campos Específicos==
+    materia : String(200) <<Nullable>>
+    editorial : String(200) <<Nullable>>
+    edicion : String(100) <<Nullable>>
+    codigo_seccion_full : String(100) <<Nullable>>
+    orden_importacion : Integer <<Default=0, Indexed>>
+    
+    ==Hereda de ActivoBibliografico==
+    + Todos los campos de la clase base
+}
+
+class TrabajoGrado {
+    ==Campos Específicos==
+    modalidad : Enum <<Nullable>>
+        - TESIS
+        - PROYECTO DE GRADO
+        - TRABAJO DIRIGIDO
+    tutor : String(300) <<Nullable>>
+    carrera : String(200) <<Nullable>>
+    
+    ==Hereda de ActivoBibliografico==
+    + Todos los campos de la clase base
+}
+
+note bottom of TrabajoGrado
+  **Restricción de Negocio:**
+  Las TESIS solo pueden prestarse
+  en SALA (validado en backend)
+end note
+
+' ========================================
+' ESTUDIANTES
+' ========================================
+
+class Estudiante {
+    ==Identificación==
+    PK id : Integer <<AutoIncrement>>
+    UNIQUE carnet_universitario : String(50) <<NotNull>>
+    UNIQUE ci : String(20) <<NotNull>>
+    
+    ==Información Personal==
+    nombre_completo : String(255) <<NotNull>>
+    carrera : String(100) <<NotNull>>
+    email : Email <<Nullable>>
+    telefono : String(20) <<Nullable>>
+    
+    ==Auditoría==
+    fecha_registro : DateTime <<AutoNow>>
+}
+
+note right of Estudiante
+  **Reglas de Negocio:**
+  - CI es clave única (auto-detección)
+  - carnet_universitario = ci
+  - Creación automática en préstamo
+  - carrera default: "No especificada"
+end note
+
+' ========================================
+' PRÉSTAMOS
+' ========================================
+
+class Prestamo {
+    ==Identificación==
+    PK id : Integer <<AutoIncrement>>
+    FK activo_id : Integer <<NotNull>>
+    FK estudiante_id : Integer <<NotNull>>
+    FK usuario_prestamo_id : Integer <<Nullable>>
+    
+    ==Tipo y Estado==
+    tipo : Enum <<NotNull>>
+        - SALA (Deja Carnet Universitario)
+        - DOMICILIO (Deja CI - Máx 2 días)
+    estado : Enum <<NotNull, Default='VIGENTE'>>
+        - VIGENTE
+        - DEVUELTO
+        - ATRASADO
+    
+    ==Fechas==
+    fecha_prestamo : DateTime <<AutoNow>>
+    fecha_devolucion_estimada : DateTime <<Calculated>>
+    fecha_devolucion_real : DateTime <<Nullable>>
+    
+    ==Observaciones==
+    observaciones : Text <<Nullable>>
+    
+    ==Métodos==
+    + save() : void {Calcula fecha_devolucion_estimada}
+}
+
+note bottom of Prestamo
+  **Cálculo Automático:**
+  SALA: Mismo día 23:59
+  DOMICILIO: +2 días
+  
+  **Validaciones:**
+  - No doble préstamo activo
+  - SALA→DOMICILIO: Cancela SALA
+  - Timezone: America/La_Paz
+end note
+
+' ========================================
+' AUDITORÍA (django-simple-history)
+' ========================================
+
+class HistoricalActivoBibliografico <<History>> {
+    history_id : Integer <<PK>>
+    history_date : DateTime
+    history_change_reason : String
+    history_type : Char {+, ~, -}
+    history_user_id : Integer <<FK>>
+    + Todos los campos de ActivoBibliografico
+}
+
+class HistoricalLibro <<History>> {
+    history_id : Integer <<PK>>
+    + Todos los campos de Libro
+    + Campos de auditoría
+}
+
+class HistoricalTrabajoGrado <<History>> {
+    history_id : Integer <<PK>>
+    + Todos los campos de TrabajoGrado
+    + Campos de auditoría
+}
+
+' ========================================
+' RELACIONES
+' ========================================
+
+ActivoBibliografico <|-- Libro : extends
+ActivoBibliografico <|-- TrabajoGrado : extends
+
+ActivoBibliografico "1" -- "0..*" Prestamo : activo
+Estudiante "1" -- "0..*" Prestamo : estudiante
+
+ActivoBibliografico "1" -- "0..*" HistoricalActivoBibliografico : auditoría
+Libro "1" -- "0..*" HistoricalLibro : auditoría
+TrabajoGrado "1" -- "0..*" HistoricalTrabajoGrado : auditoría
+
+' Relación con User de Django (auth.User)
+class User <<Django Auth>> {
+    id : Integer <<PK>>
+    username : String
+    email : Email
+    ...
+}
+
+User "1" -- "0..*" Prestamo : usuario_prestamo
+
+' ========================================
+' LEYENDA
+' ========================================
+
+legend bottom
+  **Convenciones:**
+  PK = Primary Key (Clave Primaria)
+  FK = Foreign Key (Clave Foránea)
+  UNIQUE = Campo único (no duplicados)
+  <<Nullable>> = Permite valores nulos
+  <<NotNull>> = No permite nulos
+  <<AutoNow>> = Auto-generado al crear
+  <<Indexed>> = Indexado para búsquedas rápidas
+  <<Calculated>> = Calculado automáticamente
+  
+  **Cardinalidad:**
+  1 = Exactamente uno
+  0..* = Cero o muchos
+  
+  **Tipos de Cambio (history_type):**
+  + = Creación (INSERT)
+  ~ = Modificación (UPDATE)
+  - = Eliminación (DELETE)
+  
+  **Zona Horaria Sistema:**
+  America/La_Paz (Bolivia)
+  
+  **Base de Datos:**
+  Desarrollo: SQLite3 (2,387 registros)
+  Producción: PostgreSQL
+end legend
+
+note as N1
+  **Sistema de Inventario de Biblioteca**
+  
+  Características Principales:
+  ✓ Gestión de 1,703 libros + 684 tesis
+  ✓ Auditoría completa con django-simple-history
+  ✓ Préstamos en SALA y DOMICILIO
+  ✓ Auto-registro de estudiantes
+  ✓ Carrito de préstamos (batch processing)
+  ✓ Búsqueda con autocompletado
+  ✓ Zona horaria Bolivia (UTC-4)
+end note
+
+@enduml

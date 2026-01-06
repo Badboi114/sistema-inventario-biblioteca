@@ -13,6 +13,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [filtrosActivos, setFiltrosActivos] = useState({});
+  const [prestamosActivos, setPrestamosActivos] = useState([]);
   
   // Estado para edición
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -28,17 +29,39 @@ const Tesis = ({ onNavigateToPrestamos }) => {
   const fetchTesis = async (query = '', filters = {}) => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
       const params = {
         search: query,
         ...filters
       };
-      const response = await axios.get('http://127.0.0.1:8000/api/tesis/', { params });
-      const data = response.data.results ? response.data.results : response.data;
+      
+      // Cargar tesis Y préstamos activos en paralelo
+      const [resTesis, resPrestamos] = await Promise.all([
+        axios.get('http://127.0.0.1:8000/api/tesis/', { params, ...config }),
+        axios.get('http://127.0.0.1:8000/api/prestamos/?estado=VIGENTE', config)
+      ]);
+      
+      const data = resTesis.data.results ? resTesis.data.results : resTesis.data;
       setTesis(data);
+      setPrestamosActivos(resPrestamos.data);
     } catch (error) {
       console.error("Error cargando tesis:", error);
     }
     setLoading(false);
+  };
+
+  // Función para verificar si una tesis está prestada
+  const getEstadoPrestamo = (tesisId) => {
+    const prestamo = prestamosActivos.find(p => p.activo === tesisId);
+    if (!prestamo) return null;
+    
+    return {
+      tipo: prestamo.tipo,
+      label: prestamo.tipo === 'SALA' ? 'EN USO' : 'PRESTADO',
+      estudiante: prestamo.estudiante_nombre
+    };
   };
 
   // Cargar al inicio
@@ -210,60 +233,89 @@ const Tesis = ({ onNavigateToPrestamos }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
-              {tesis.map((item) => (
+              {tesis.map((item) => {
+                const estadoPrestamo = getEstadoPrestamo(item.id);
+                const enCarrito = !!cart.find(c => c.id === item.id);
+                const isPrestado = !!estadoPrestamo;
+                
+                return (
                 <tr 
                   key={item.id} 
-                  className={`hover:bg-green-50 transition-colors cursor-pointer ${cart.find(c => c.id === item.id) ? 'bg-orange-100 border-l-4 border-orange-500' : ''}`}
+                  className={`transition-colors cursor-pointer ${
+                    enCarrito ? 'bg-orange-50 border-l-4 border-orange-400' : 
+                    isPrestado ? 'bg-red-50 opacity-75' : 
+                    'hover:bg-green-50'
+                  }`}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                 >
                   <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
-                      checked={!!cart.find(c => c.id === item.id)} 
-                      onChange={() => toggleItem({...item, tipo: 'TESIS'})}
-                      title="Marcar para prestar"
-                    />
+                    {!isPrestado ? (
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                        checked={enCarrito} 
+                        onChange={() => toggleItem({...item, tipo: 'TESIS'})}
+                        title="Marcar para prestar"
+                      />
+                    ) : (
+                      <span className="text-red-500 text-xl font-bold" title="No disponible">✕</span>
+                    )}
                   </td>
-                  <td className="p-4 font-bold text-green-700 whitespace-nowrap">
-                    {item.codigo_nuevo}
+                  <td className={`p-4 font-bold whitespace-nowrap ${isPrestado ? 'text-red-700' : 'text-green-700'}`}>
+                    <div className="flex flex-col gap-1">
+                      {item.codigo_nuevo}
+                      {isPrestado && (
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                          estadoPrestamo.tipo === 'SALA' 
+                            ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                            : 'bg-red-100 text-red-700 border border-red-300'
+                        }`}>
+                          {estadoPrestamo.tipo === 'SALA' ? 'EN USO' : 'PRESTADO'}
+                        </span>
+                      )}
+                    </div>
                   </td>
-                  <td className="p-4 max-w-md">
-                    <div className="font-medium text-gray-800 truncate mb-1" title={item.titulo}>
+                  <td className={`p-4 max-w-md ${isPrestado ? 'text-red-600' : ''}`}>
+                    <div className={`font-medium truncate mb-1 ${isPrestado ? 'text-red-600' : 'text-gray-800'}`} title={item.titulo}>
                       {item.titulo}
                     </div>
+                    {isPrestado && (
+                      <div className="text-xs text-red-500 italic mt-1">
+                        Por: {estadoPrestamo.estudiante}
+                      </div>
+                    )}
                     <div className="text-xs text-gray-500 flex items-center gap-1">
                       <span className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
                         {item.modalidad}
                       </span>
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className={`p-4 ${isPrestado ? 'text-red-600' : ''}`}>
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1 text-gray-800">
+                      <div className={`flex items-center gap-1 ${isPrestado ? 'text-red-600' : 'text-gray-800'}`}>
                         <User className="w-3 h-3 text-blue-500" /> 
                         <span className="font-medium text-xs">{item.autor}</span>
                       </div>
-                      <div className="flex items-center gap-1 text-gray-500 text-xs">
+                      <div className={`flex items-center gap-1 text-xs ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}>
                         <Users className="w-3 h-3" />
                         <span className="font-semibold">Tutor:</span> {item.tutor}
                       </div>
                     </div>
                   </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-1 font-medium text-gray-700">
+                  <td className={`p-4 ${isPrestado ? 'text-red-600' : ''}`}>
+                    <div className={`flex items-center gap-1 font-medium ${isPrestado ? 'text-red-600' : 'text-gray-700'}`}>
                       <Building2 className="w-3 h-3 text-gray-400" />
                       {item.facultad}
                     </div>
                   </td>
-                  <td className="p-4">
+                  <td className={`p-4 ${isPrestado ? 'text-red-600' : ''}`}>
                     <div className="flex items-center gap-1 text-xs">
                       <Briefcase className="w-3 h-3 text-gray-400" />
                       {item.carrera}
                     </div>
                   </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                  <td className={`p-4 ${isPrestado ? 'text-red-500' : ''}`}>
+                    <div className={`flex items-center gap-1 text-xs ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}>
                       <Calendar className="w-3 h-3" />
                       {item.anio}
                     </div>
@@ -278,7 +330,8 @@ const Tesis = ({ onNavigateToPrestamos }) => {
                     </span>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {tesis.length === 0 && (

@@ -13,6 +13,7 @@ const Libros = ({ onNavigateToPrestamos }) => {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [filtrosActivos, setFiltrosActivos] = useState({});
+  const [prestamosActivos, setPrestamosActivos] = useState([]);
   
   // Estado para edición
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -28,11 +29,19 @@ const Libros = ({ onNavigateToPrestamos }) => {
   const fetchLibros = async (query = '', filters = {}) => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
       // Construimos los parámetros
       const params = { search: query, ...filters };
-      const response = await axios.get('http://127.0.0.1:8000/api/libros/', { params });
       
-      const data = response.data.results ? response.data.results : response.data;
+      // Cargar libros Y préstamos activos en paralelo
+      const [resLibros, resPrestamos] = await Promise.all([
+        axios.get('http://127.0.0.1:8000/api/libros/', { params, ...config }),
+        axios.get('http://127.0.0.1:8000/api/prestamos/?estado=VIGENTE', config)
+      ]);
+      
+      const data = resLibros.data.results ? resLibros.data.results : resLibros.data;
       
       // 🎯 CONFIAMOS EN EL BACKEND - No reordenamos en el frontend
       // El backend ya envía los datos ordenados correctamente:
@@ -40,10 +49,23 @@ const Libros = ({ onNavigateToPrestamos }) => {
       // 2. Libros SIN código de sección al final
       
       setLibros(data);
+      setPrestamosActivos(resPrestamos.data);
     } catch (error) {
       console.error("Error cargando libros:", error);
     }
     setLoading(false);
+  };
+
+  // Función para verificar si un libro está prestado
+  const getEstadoPrestamo = (libroId) => {
+    const prestamo = prestamosActivos.find(p => p.activo === libroId);
+    if (!prestamo) return null;
+    
+    return {
+      tipo: prestamo.tipo,
+      label: prestamo.tipo === 'SALA' ? 'EN USO' : 'PRESTADO',
+      estudiante: prestamo.estudiante_nombre
+    };
   };
 
   // Cargar al inicio
@@ -214,38 +236,63 @@ const Libros = ({ onNavigateToPrestamos }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
-              {libros.map((libro) => (
+              {libros.map((libro) => {
+                const estadoPrestamo = getEstadoPrestamo(libro.id);
+                const enCarrito = !!cart.find(c => c.id === libro.id);
+                const isPrestado = !!estadoPrestamo;
+                
+                return (
                 <tr 
                     key={libro.id} 
-                    className={`hover:bg-blue-50 transition-colors cursor-pointer ${cart.find(item => item.id === libro.id) ? 'bg-orange-100 border-l-4 border-orange-500' : ''}`}
+                    className={`transition-colors cursor-pointer ${
+                      enCarrito ? 'bg-orange-50 border-l-4 border-orange-400' : 
+                      isPrestado ? 'bg-red-50 opacity-75' : 
+                      'hover:bg-blue-50'
+                    }`}
                     onContextMenu={(e) => handleContextMenu(e, libro)}
                 >
                   <td className="p-4 align-top" onClick={(e) => e.stopPropagation()}>
-                      <input 
-                        type="checkbox" 
-                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                        checked={!!cart.find(item => item.id === libro.id)} 
-                        onChange={() => toggleItem({...libro, tipo: 'LIBRO'})} 
-                        title="Marcar para prestar"
-                      />
+                      {!isPrestado ? (
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                          checked={enCarrito} 
+                          onChange={() => toggleItem({...libro, tipo: 'LIBRO'})} 
+                          title="Marcar para prestar"
+                        />
+                      ) : (
+                        <span className="text-red-500 text-xl font-bold" title="No disponible">✕</span>
+                      )}
                   </td>
                   
                   {/* COLUMNA 1: CÓDIGOS (SIMPLIFICADA PARA VISUALIZACIÓN) */}
-                  <td className="p-4 align-top min-w-[180px]">
+                  <td className={`p-4 align-top min-w-[180px] ${isPrestado ? 'text-red-700' : ''}`}>
                     <div className="flex flex-col gap-2">
                         {/* 1. Código Nuevo (Negrita Azul) */}
-                        <div className="font-bold text-blue-700 text-base">
+                        <div className={`font-bold text-base ${isPrestado ? 'text-red-700' : 'text-blue-700'}`}>
                             {libro.codigo_nuevo || 'S/C'}
                         </div>
                         
+                        {isPrestado && (
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                            estadoPrestamo.tipo === 'SALA' 
+                              ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                              : 'bg-red-100 text-red-700 border border-red-300'
+                          }`}>
+                            {estadoPrestamo.tipo === 'SALA' ? 'EN USO' : 'PRESTADO'}
+                          </span>
+                        )}
+                        
                         {/* 2. Código Antiguo (Gris pequeño) */}
-                        <div className="text-xs text-gray-500">
+                        <div className={`text-xs ${isPrestado ? 'text-red-400' : 'text-gray-500'}`}>
                             <Hash className="w-3 h-3 inline mr-1" />
                             Ant: {libro.codigo_antiguo || '-'}
                         </div>
                         
                         {/* 3. Ubicación Física (Código Sección - Destacado) */}
-                        <div className="text-sm font-mono bg-blue-100 px-2 py-1 rounded border border-blue-300 text-blue-800 font-bold inline-block">
+                        <div className={`text-sm font-mono px-2 py-1 rounded border font-bold inline-block ${
+                          isPrestado ? 'bg-red-100 border-red-300 text-red-800' : 'bg-blue-100 border-blue-300 text-blue-800'
+                        }`}>
                             <Layers className="w-3 h-3 inline mr-1" />
                             {libro.codigo_seccion_full || 'S/Ubicación'}
                         </div>
@@ -253,11 +300,16 @@ const Libros = ({ onNavigateToPrestamos }) => {
                   </td>
 
                   {/* COLUMNA 2: TÍTULO Y AUTOR */}
-                  <td className="p-4 align-top max-w-md">
-                    <div className="font-medium text-gray-800 text-base leading-tight mb-1">
+                  <td className={`p-4 align-top max-w-md ${isPrestado ? 'text-red-600' : ''}`}>
+                    <div className={`font-medium text-base leading-tight mb-1 ${isPrestado ? 'text-red-600' : 'text-gray-800'}`}>
                         {libro.titulo}
                     </div>
-                    <div className="flex items-center gap-1 text-blue-600 text-xs font-medium mt-2">
+                    {isPrestado && (
+                      <div className="text-xs text-red-500 italic mt-1">
+                        Por: {estadoPrestamo.estudiante}
+                      </div>
+                    )}
+                    <div className={`flex items-center gap-1 text-xs font-medium mt-2 ${isPrestado ? 'text-red-500' : 'text-blue-600'}`}>
                         <User className="w-3 h-3" /> {libro.autor || 'Sin Autor'}
                     </div>
                     {libro.observaciones && (
@@ -268,28 +320,28 @@ const Libros = ({ onNavigateToPrestamos }) => {
                   </td>
 
                   {/* COLUMNA 3: DETALLES (Editorial, Edición, Materia, Año) */}
-                  <td className="p-4 align-top">
+                  <td className={`p-4 align-top ${isPrestado ? 'text-red-600' : ''}`}>
                     <div className="flex flex-col gap-1 text-xs">
-                        <div className="font-semibold text-gray-700">{libro.editorial || 'S/Editorial'}</div>
-                        <div className="text-gray-500">{libro.edicion || '-'}</div>
-                        <div className="flex items-center gap-1 mt-1 text-gray-600">
+                        <div className={`font-semibold ${isPrestado ? 'text-red-600' : 'text-gray-700'}`}>{libro.editorial || 'S/Editorial'}</div>
+                        <div className={isPrestado ? 'text-red-500' : 'text-gray-500'}>{libro.edicion || '-'}</div>
+                        <div className={`flex items-center gap-1 mt-1 ${isPrestado ? 'text-red-600' : 'text-gray-600'}`}>
                             <Book className="w-3 h-3" /> {libro.materia || '-'}
                         </div>
-                        <div className="flex items-center gap-1 text-gray-500">
+                        <div className={`flex items-center gap-1 ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}>
                             <Calendar className="w-3 h-3" /> {libro.anio || '-'}
                         </div>
                     </div>
                   </td>
 
                   {/* COLUMNA 4: UBICACIÓN */}
-                  <td className="p-4 align-top">
+                  <td className={`p-4 align-top ${isPrestado ? 'text-red-600' : ''}`}>
                      <div className="flex flex-col gap-1 text-xs">
-                        <div className="flex items-center gap-1 font-bold text-gray-700">
+                        <div className={`flex items-center gap-1 font-bold ${isPrestado ? 'text-red-600' : 'text-gray-700'}`}>
                             <MapPin className="w-3 h-3 text-red-400" /> {libro.ubicacion_seccion || 'S/Ubicación'}
                         </div>
-                        <div className="pl-4 text-gray-500">{libro.ubicacion_repisa || '-'}</div>
+                        <div className={`pl-4 ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}>{libro.ubicacion_repisa || '-'}</div>
                         {libro.facultad && (
-                            <div className="mt-1 flex items-center gap-1 text-[10px] text-gray-400 border-t pt-1">
+                            <div className={`mt-1 flex items-center gap-1 text-[10px] border-t pt-1 ${isPrestado ? 'text-red-400' : 'text-gray-400'}`}>
                                 <Building2 className="w-3 h-3" /> {libro.facultad}
                             </div>
                         )}
@@ -306,7 +358,8 @@ const Libros = ({ onNavigateToPrestamos }) => {
                     </span>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           {libros.length === 0 && (
