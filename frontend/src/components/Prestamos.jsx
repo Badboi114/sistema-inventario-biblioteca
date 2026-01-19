@@ -319,7 +319,7 @@ const Prestamos = () => {
                         </td>
                         <td className="p-4">
                             <div className="flex items-center gap-2">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${p.activo_tipo === 'TESIS' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${p.activo_tipo === 'TESIS' ? 'bg-blue-100 text-blue-900 border-blue-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
                                     {p.activo_tipo || 'LIBRO'}
                                 </span>
                                 <span className="font-mono text-sm font-bold text-gray-800 bg-yellow-100 px-1 rounded">{p.activo_codigo || 'S/C'}</span>
@@ -340,7 +340,7 @@ const Prestamos = () => {
                                     <span className="font-bold">Salida:</span> {formatDateTime(p.fecha_prestamo)}
                                 </div>
                                 {p.estado === 'DEVUELTO' ? (
-                                    <div className="text-green-700 bg-green-50 px-1 rounded w-fit border border-green-200">
+                                    <div className="text-blue-900 bg-blue-50 px-1 rounded w-fit border border-blue-200">
                                         <span className="font-bold">Volvió:</span> {formatDateTime(p.fecha_devolucion_real)}
                                     </div>
                                 ) : (
@@ -351,14 +351,14 @@ const Prestamos = () => {
                             </div>
                         </td>
                         <td className="p-4">
-                            {p.estado === 'VIGENTE' && <span className="text-green-600 font-bold text-xs bg-green-100 px-2 py-1 rounded flex items-center gap-1 w-fit"><Clock className="w-3 h-3" /> ACTIVO</span>}
+                            {p.estado === 'VIGENTE' && <span className="text-blue-900 font-bold text-xs bg-blue-100 px-2 py-1 rounded flex items-center gap-1 w-fit"><Clock className="w-3 h-3" /> ACTIVO</span>}
                             {p.estado === 'DEVUELTO' && <span className="text-gray-500 font-bold text-xs bg-gray-100 px-2 py-1 rounded flex items-center gap-1 w-fit"><CheckCircle className="w-3 h-3" /> CERRADO</span>}
                         </td>
                         <td className="p-4 text-center">
                             {p.estado !== 'DEVUELTO' && (
                                 <button 
                                     onClick={() => handleDevolucion(p.id)} 
-                                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1 mx-auto"
+                                    className="bg-blue-900 hover:bg-blue-950 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1 mx-auto"
                                 >
                                     <CheckCircle className="w-3 h-3" /> DEVOLVER
                                 </button>
@@ -401,7 +401,7 @@ const Prestamos = () => {
                                 type="text"
                                 className={`w-full pl-10 pr-4 py-2 border-2 rounded-xl outline-none focus:ring-2 transition-all ${
                                     estudianteEncontrado 
-                                        ? 'border-green-400 bg-green-50 focus:border-green-500 focus:ring-green-100' 
+                                        ? 'border-blue-400 bg-blue-50 focus:border-blue-500 focus:ring-blue-100' 
                                         : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-100'
                                 }`}
                                 placeholder="Carnet Universitario / C.I. del Estudiante"
@@ -418,7 +418,7 @@ const Prestamos = () => {
                                 type="text"
                                 className={`w-full pl-10 pr-4 py-2 border-2 rounded-xl outline-none transition-all ${
                                     estudianteEncontrado 
-                                        ? 'border-green-400 bg-green-50 text-green-900 cursor-not-allowed' 
+                                        ? 'border-blue-400 bg-blue-50 text-blue-900 cursor-not-allowed' 
                                         : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
                                 }`}
                                 placeholder="Nombre Completo del Estudiante"
@@ -427,7 +427,7 @@ const Prestamos = () => {
                                 readOnly={!!estudianteEncontrado}
                             />
                             {estudianteEncontrado && (
-                                <span className="absolute right-3 top-2.5 flex items-center gap-1 text-xs font-bold text-green-600">
+                                <span className="absolute right-3 top-2.5 flex items-center gap-1 text-xs font-bold text-blue-900">
                                     <CheckCircle className="w-3 h-3" /> Registrado
                                 </span>
                             )}
@@ -458,7 +458,7 @@ const Prestamos = () => {
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                                                         item.tipo === 'TESIS' 
-                                                            ? 'bg-green-100 text-green-700' 
+                                                            ? 'bg-blue-100 text-blue-900' 
                                                             : 'bg-blue-100 text-blue-700'
                                                     }`}>
                                                         {item.tipo}
@@ -514,7 +514,7 @@ const Prestamos = () => {
                                                 <div className="flex justify-between items-start mb-1">
                                                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                                                         l.tipo === 'TESIS' 
-                                                            ? 'bg-green-100 text-green-700 border-green-200' 
+                                                            ? 'bg-blue-100 text-blue-900 border-blue-200' 
                                                             : 'bg-blue-100 text-blue-700 border-blue-200'
                                                     }`}>
                                                         {l.tipo}

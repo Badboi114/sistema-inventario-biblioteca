@@ -172,7 +172,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-            <GraduationCap className="mr-2 text-green-600" /> Proyectos de Grado y Tesis
+            <GraduationCap className="mr-2 text-blue-900" /> Proyectos de Grado y Tesis
           </h2>
           
           {/* BOTÓN PRESTAR SELECCIONADOS */}
@@ -189,7 +189,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
           {/* BOTÓN NUEVO */}
           <button 
             onClick={handleCreateNew}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-green-700 transition-colors shadow-sm"
+            className="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-blue-950 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4 mr-2" /> Nueva Tesis
           </button>
@@ -201,7 +201,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
             <input 
               type="text" 
               placeholder="Búsqueda rápida..." 
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-transparent"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
             />
@@ -219,7 +219,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
         <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-green-50 text-gray-700 text-sm uppercase border-b border-green-100">
+              <tr className="bg-blue-50 text-gray-700 text-sm uppercase border-b border-blue-100">
                 <th className="p-4 w-10">
                   <BookOpen className="w-4 h-4 text-orange-500" title="Marcar para prestar" />
                 </th>
@@ -244,7 +244,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
                   className={`transition-colors cursor-pointer ${
                     enCarrito ? 'bg-orange-50 border-l-4 border-orange-400' : 
                     isPrestado ? 'bg-red-50 opacity-75' : 
-                    'hover:bg-green-50'
+                    'hover:bg-blue-50'
                   }`}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                 >
@@ -261,7 +261,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
                       <span className="text-red-500 text-xl font-bold" title="No disponible">✕</span>
                     )}
                   </td>
-                  <td className={`p-4 font-bold whitespace-nowrap ${isPrestado ? 'text-red-700' : 'text-green-700'}`}>
+                  <td className={`p-4 font-bold whitespace-nowrap ${isPrestado ? 'text-red-700' : 'text-blue-900'}`}>
                     <div className="flex flex-col gap-1">
                       {item.codigo_nuevo}
                       {isPrestado && (
@@ -322,7 +322,7 @@ const Tesis = ({ onNavigateToPrestamos }) => {
                   </td>
                   <td className="p-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1
-                      ${item.estado === 'BUENO' ? 'bg-green-100 text-green-700' : 
+                      ${item.estado === 'BUENO' ? 'bg-blue-100 text-blue-900' : 
                         item.estado === 'REGULAR' ? 'bg-yellow-100 text-yellow-700' : 
                         'bg-red-100 text-red-700'}`}>
                       {item.estado !== 'BUENO' && item.estado !== 'REGULAR' && <AlertCircle className="w-3 h-3" />}

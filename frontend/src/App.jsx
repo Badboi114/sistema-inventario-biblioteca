@@ -174,7 +174,7 @@ function App() {
             <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
                     <p className="text-sm font-bold text-gray-800">Administrador</p>
-                    <p className="text-xs text-green-600 font-medium">● Sesión Activa</p>
+                    <p className="text-xs text-blue-900 font-medium">● Sesión Activa</p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold shadow-md">
                     A
@@ -194,12 +194,12 @@ function App() {
                   <div className="p-3 bg-blue-50 rounded-lg text-blue-600"><BookOpen /></div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-600 flex justify-between items-center">
+              <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-900 flex justify-between items-center">
                   <div>
                       <p className="text-gray-500 text-sm font-medium">Proyectos y Tesis</p>
                       <h3 className="text-3xl font-bold text-gray-800">{stats?.total_tesis || '0'}</h3>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg text-green-600"><GraduationCap /></div>
+                  <div className="p-3 bg-blue-50 rounded-lg text-blue-900"><GraduationCap /></div>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 flex justify-between items-center">
@@ -230,7 +230,7 @@ function App() {
                                 <td className="px-4 py-3">{item.titulo ? item.titulo.substring(0, 60) : "Sin título"}...</td>
                                 <td className="px-4 py-3">
                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold 
-                                        ${item.estado === 'BUENO' ? 'bg-green-100 text-green-700' : 
+                                        ${item.estado === 'BUENO' ? 'bg-blue-100 text-blue-900' : 
                                           item.estado === 'REGULAR' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                                         {item.estado}
                                     </span>

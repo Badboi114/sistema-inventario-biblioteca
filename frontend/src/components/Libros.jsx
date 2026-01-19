@@ -194,7 +194,7 @@ const Libros = ({ onNavigateToPrestamos }) => {
           {/* BOTÓN NUEVO */}
           <button 
             onClick={handleCreateNew}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-green-700 transition-colors shadow-sm"
+            className="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-blue-950 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4 mr-2" /> Nuevo Libro
           </button>
@@ -351,7 +351,7 @@ const Libros = ({ onNavigateToPrestamos }) => {
                   {/* COLUMNA 5: ESTADO */}
                   <td className="p-4 align-top text-center">
                     <span className={`px-2 py-1 rounded-full font-bold text-[10px] border inline-block
-                      ${libro.estado === 'BUENO' ? 'bg-green-100 text-green-700 border-green-200' : 
+                      ${libro.estado === 'BUENO' ? 'bg-blue-100 text-blue-900 border-blue-200' : 
                         libro.estado === 'REGULAR' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
                         'bg-red-100 text-red-700 border-red-200'}`}>
                       {libro.estado || 'REGULAR'}

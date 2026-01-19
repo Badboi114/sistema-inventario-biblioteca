@@ -57,7 +57,7 @@ const Historial = () => {
   const getIcon = (accion) => {
     if (accion === 'Eliminado') return <Trash2 className="w-4 h-4 text-red-500" />;
     if (accion === 'Modificado') return <Edit3 className="w-4 h-4 text-orange-500" />;
-    return <PlusCircle className="w-4 h-4 text-green-500" />;
+    return <PlusCircle className="w-4 h-4 text-blue-900" />;
   };
 
   return (
@@ -88,7 +88,7 @@ const Historial = () => {
                   <td className="p-4">
                     <span className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs font-bold w-max
                         ${item.accion === 'Eliminado' ? 'bg-red-100 text-red-700' : 
-                          item.accion === 'Modificado' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                          item.accion === 'Modificado' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-900'}`}>
                         {getIcon(item.accion)} {item.accion}
                     </span>
                   </td>
@@ -102,7 +102,7 @@ const Historial = () => {
                         <button 
                             onClick={() => handleRestaurar(item)}
                             title="Restaurar a este estado"
-                            className="bg-white border border-gray-300 hover:bg-green-50 hover:border-green-500 hover:text-green-600 text-gray-500 p-2 rounded-lg transition-all shadow-sm"
+                            className="bg-white border border-gray-300 hover:bg-blue-50 hover:border-blue-900 hover:text-blue-900 text-gray-500 p-2 rounded-lg transition-all shadow-sm"
                         >
                             <RotateCcw className="w-4 h-4" />
                         </button>

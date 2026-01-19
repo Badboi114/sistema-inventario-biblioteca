@@ -154,7 +154,7 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
         <div className="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                {isEditing ? <Save className="w-5 h-5 text-blue-600" /> : <PlusCircle className="w-5 h-5 text-green-600" />}
+                {isEditing ? <Save className="w-5 h-5 text-blue-600" /> : <PlusCircle className="w-5 h-5 text-blue-900" />}
                 {isEditing ? `Editar ${type === 'libros' ? 'Libro' : 'Tesis'}` : `Registrar Nuevo ${type === 'libros' ? 'Libro' : 'Tesis'}`}
             </h2>
             <p className="text-sm text-gray-500">
@@ -208,7 +208,7 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
                                     name={type === 'libros' ? 'codigo_seccion_full' : 'codigo_nuevo'}
                                     value={type === 'libros' ? (formData.codigo_seccion_full || '') : (formData.codigo_nuevo || '')}
                                     onChange={handleChange}
-                                    className="w-full p-3 border-2 border-green-300 rounded-lg font-bold text-green-700 text-lg bg-green-50 focus:ring-2 focus:ring-green-500"
+                                    className="w-full p-3 border-2 border-blue-300 rounded-lg font-bold text-blue-900 text-lg bg-blue-50 focus:ring-2 focus:ring-blue-500"
                                     placeholder="Se generará automáticamente..."
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
@@ -264,7 +264,7 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             <button onClick={onClose} className="px-5 py-2.5 text-gray-600 font-semibold hover:bg-gray-200 rounded-lg transition-colors">
                 Cancelar
             </button>
-            <button type="submit" form="edit-form" className={`px-5 py-2.5 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 ${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700'}`}>
+            <button type="submit" form="edit-form" className={`px-5 py-2.5 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2 ${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-900 hover:bg-blue-950'}`}>
                 <Save className="w-4 h-4" /> {isEditing ? 'Guardar Cambios' : 'Registrar Ahora'}
             </button>
         </div>

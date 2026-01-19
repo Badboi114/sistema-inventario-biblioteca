@@ -52,7 +52,7 @@ const FilterBar = ({ type, onFilterApply }) => {
   };
 
   // Lógica del botón de color
-  const buttonColor = activeCount > 0 ? 'bg-red-500 hover:bg-red-600' : 'bg-green-600 hover:bg-green-700';
+  const buttonColor = activeCount > 0 ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-900 hover:bg-blue-950';
   const buttonText = activeCount > 0 ? 'Reiniciar Filtros' : 'Filtros Avanzados';
 
   return (
