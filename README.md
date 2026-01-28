@@ -1,7 +1,6 @@
 # Sistema de Inventario de Biblioteca
 
 Sistema completo de gestión de inventario bibliográfico desarrollado con Django REST Framework y React + Vite.
-.
 
 ## 🚀 Características
 
