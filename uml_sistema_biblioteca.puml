@@ -1,0 +1,37 @@
+@startuml
+' Diagrama de clases simplificado para el Sistema de Inventario y Préstamo de Biblioteca
+
+class Usuario {
+  +id: int
+  +nombre: str
+  +email: str
+  +rol: str
+}
+
+class Libro {
+  +id: int
+  +titulo: str
+  +autor: str
+  +codigo: str
+  +estado: str
+}
+
+class Estudiante {
+  +id: int
+  +nombre: str
+  +carrera: str
+  +ci: str
+}
+
+class Prestamo {
+  +id: int
+  +fecha_prestamo: date
+  +fecha_devolucion: date
+  +estado: str
+}
+
+Usuario "1" -- "*" Prestamo : realiza
+Estudiante "1" -- "*" Prestamo : solicita
+Libro "1" -- "*" Prestamo : es prestado
+
+@enduml

@@ -137,7 +137,6 @@ const Estudiantes = () => {
           <thead>
             <tr className="bg-gray-50 text-gray-700 text-xs uppercase border-b">
               <th className="p-4">Nombre Completo</th>
-              <th className="p-4">Carnet</th>
               <th className="p-4">CI</th>
               <th className="p-4">Carrera</th>
               <th className="p-4">Contacto</th>
@@ -158,11 +157,6 @@ const Estudiantes = () => {
               estudiantes.map((est) => (
                 <tr key={est.id} className="hover:bg-gray-50">
                   <td className="p-4 font-medium text-gray-800">{est.nombre_completo}</td>
-                  <td className="p-4">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                      {est.carnet_universitario}
-                    </span>
-                  </td>
                   <td className="p-4 text-gray-600">{est.ci}</td>
                   <td className="p-4 text-gray-600">{est.carrera}</td>
                   <td className="p-4">

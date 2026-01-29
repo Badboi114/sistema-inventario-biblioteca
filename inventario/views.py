@@ -1,3 +1,13 @@
+from rest_framework.permissions import AllowAny
+
+# Endpoint público para IDs de activos prestados
+from rest_framework.decorators import api_view, permission_classes
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def activos_prestados_publico(request):
+    ids = list(Prestamo.objects.filter(estado='VIGENTE').values_list('activo_id', flat=True))
+    return Response({'prestados': ids or []})
 from django.shortcuts import render
 from rest_framework import viewsets, filters
 from rest_framework.views import APIView
@@ -255,38 +265,96 @@ class DashboardStatsView(APIView):
 class HistorialView(APIView):
     """Vista para obtener el historial de auditoría de libros y tesis"""
     def get(self, request):
-        # 1. Obtener historial de Libros
-        historial_libros = Libro.history.all().order_by('-history_date')[:50]  # Últimos 50
-        
-        # 2. Obtener historial de Tesis
-        historial_tesis = TrabajoGrado.history.all().order_by('-history_date')[:50]
-        
-        # 3. Unificar y formatear
+        # 1. Obtener historial de Libros y Tesis
+        historial_libros = list(Libro.history.all().order_by('-history_date')[:50])
+        historial_tesis = list(TrabajoGrado.history.all().order_by('-history_date')[:50])
+
+        # 2. Unificar y formatear
         data = []
-        
-        def formatear_registro(record, tipo):
+
+        def formatear_registro(record, tipo, extra=None):
             accion = 'Modificado'
             if record.history_type == '+': accion = 'Creado'
             if record.history_type == '-': accion = 'Eliminado'
-            
-            return {
+            # Campos comunes
+            reg = {
                 'history_id': record.history_id,
                 'id_original': record.id,
                 'titulo': record.titulo,
-                'codigo': record.codigo_nuevo,
+                'codigo': getattr(record, 'codigo_nuevo', None),
                 'fecha': record.history_date.isoformat(),
                 'usuario': str(record.history_user) if record.history_user else 'Sistema',
                 'accion': accion,
                 'tipo': tipo,
-                'modelo': 'libro' if tipo == 'Libro' else 'tesis'
+                'modelo': 'libro' if tipo == 'Libro' else 'tesis',
+                'autor': getattr(record, 'autor', None),
+                'anio': getattr(record, 'anio', None),
+                'facultad': getattr(record, 'facultad', None),
+                'estado': getattr(record, 'estado', None),
+                'observaciones': getattr(record, 'observaciones', None),
+                'ubicacion_seccion': getattr(record, 'ubicacion_seccion', None),
+                'ubicacion_repisa': getattr(record, 'ubicacion_repisa', None),
+                'fecha_registro': getattr(record, 'fecha_registro', None),
             }
+            # Campos específicos de Libro
+            if tipo == 'Libro':
+                reg.update({
+                    'materia': getattr(record, 'materia', None),
+                    'editorial': getattr(record, 'editorial', None),
+                    'edicion': getattr(record, 'edicion', None),
+                    'codigo_seccion_full': getattr(record, 'codigo_seccion_full', None),
+                    'orden_importacion': getattr(record, 'orden_importacion', None),
+                })
+            # Campos específicos de Tesis
+            if tipo == 'Tesis':
+                reg.update({
+                    'modalidad': getattr(record, 'modalidad', None),
+                    'tutor': getattr(record, 'tutor', None),
+                    'carrera': getattr(record, 'carrera', None),
+                })
+            if extra:
+                reg['estado_anterior'] = extra
+            return reg
 
-        for h in historial_libros: data.append(formatear_registro(h, 'Libro'))
-        for h in historial_tesis: data.append(formatear_registro(h, 'Tesis'))
-        
+        def obtener_estado_anterior(hist_list):
+            # Devuelve lista de registros, duplicando los 'Modificado' con su estado anterior
+            resultado = []
+            for idx, rec in enumerate(hist_list):
+                tipo = 'Libro' if hasattr(rec, 'materia') else 'Tesis'
+                # Si es modificación, buscar el registro anterior inmediato (mismo id_original)
+                if rec.history_type == '~':
+                    # Buscar el anterior con mismo id
+                    prev = None
+                    for siguiente in hist_list[idx+1:]:
+                        if siguiente.id == rec.id:
+                            prev = siguiente
+                            break
+                    # Agregar el registro modificado
+                    resultado.append(formatear_registro(rec, tipo))
+                    # Si hay anterior, agregarlo como 'Estado Anterior'
+                    if prev:
+                        resultado.append(formatear_registro(prev, tipo, extra={
+                            'history_id': prev.history_id,
+                            'id_original': prev.id,
+                            'titulo': prev.titulo,
+                            'codigo': getattr(prev, 'codigo_nuevo', None),
+                            'fecha': prev.history_date.isoformat(),
+                            'usuario': str(prev.history_user) if prev.history_user else 'Sistema',
+                            'accion': 'Estado Anterior',
+                            'tipo': tipo,
+                            'modelo': 'libro' if tipo == 'Libro' else 'tesis'
+                        }))
+                else:
+                    resultado.append(formatear_registro(rec, tipo))
+            return resultado
+
+        # Procesar ambos historiales
+        data.extend(obtener_estado_anterior(historial_libros))
+        data.extend(obtener_estado_anterior(historial_tesis))
+
         # Ordenar mezcla por fecha descendente
         data.sort(key=lambda x: x['fecha'], reverse=True)
-        
+
         return Response(data)
 
 

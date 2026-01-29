@@ -20,7 +20,8 @@ from rest_framework.routers import DefaultRouter
 from inventario.views import (
     LibroViewSet, TrabajoGradoViewSet, DashboardStatsView, 
     HistorialView, RestaurarRegistroView, SiguienteCodigoView, ListaSeccionesView,
-    PerfilUsuarioView, ActivoViewSet, EstudianteViewSet, PrestamoViewSet
+    PerfilUsuarioView, ActivoViewSet, EstudianteViewSet, PrestamoViewSet,
+    activos_prestados_publico
 )
 # Importamos las vistas de Token
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -37,6 +38,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/dashboard/', DashboardStatsView.as_view(), name='dashboard-stats'),
+    path('api/prestados-publico/', activos_prestados_publico, name='prestados-publico'),
     
     # RUTAS DE LOGIN
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

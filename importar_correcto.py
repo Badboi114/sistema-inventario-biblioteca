@@ -118,9 +118,17 @@ def importar_libros(df, nombre_hoja, orden_inicial):
                     'orden_importacion': orden_actual,
                 }
                 
-                # Verificar si existe
-                if Libro.objects.filter(codigo_nuevo=codigo).exists():
-                    libro = Libro.objects.filter(codigo_nuevo=codigo).first()
+                # Verificar si existe por código o coincidencia total de título, autor y año
+                libro_qs = Libro.objects.filter(
+                    models.Q(codigo_nuevo=codigo) |
+                    (
+                        models.Q(titulo=datos['titulo']) &
+                        models.Q(autor=datos['autor']) &
+                        models.Q(anio=datos['anio'])
+                    )
+                )
+                if libro_qs.exists():
+                    libro = libro_qs.first()
                     for key, value in datos.items():
                         setattr(libro, key, value)
                     libro.save()
@@ -206,9 +214,17 @@ def importar_tesis(df, nombre_hoja):
                     'observaciones': limpiar_valor(row.get('OBSERVACIONES', '')),
                 }
                 
-                # Verificar si existe
-                if TrabajoGrado.objects.filter(codigo_nuevo=codigo).exists():
-                    tesis = TrabajoGrado.objects.filter(codigo_nuevo=codigo).first()
+                # Verificar si existe por código o coincidencia total de título, autor y año
+                tesis_qs = TrabajoGrado.objects.filter(
+                    models.Q(codigo_nuevo=codigo) |
+                    (
+                        models.Q(titulo=datos['titulo']) &
+                        models.Q(autor=datos['autor']) &
+                        models.Q(anio=datos['anio'])
+                    )
+                )
+                if tesis_qs.exists():
+                    tesis = tesis_qs.first()
                     for key, value in datos.items():
                         setattr(tesis, key, value)
                     tesis.save()
