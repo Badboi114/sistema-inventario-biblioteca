@@ -119,14 +119,21 @@ const Libros = ({ onNavigateToPrestamos }) => {
 
     if (!password) return;
 
-    try {
-      await Promise.all(ids.map(id => axios.delete(`http://127.0.0.1:8000/api/libros/${id}/`)));
-      Swal.fire('¡Eliminado!', 'Los registros han sido eliminados correctamente.', 'success');
-      fetchLibros(busqueda, filtrosActivos);
-      setSelectedIds([]);
-    } catch (error) {
-      Swal.fire('Error', 'No se pudo eliminar. Verifica tus permisos.', 'error');
+    let success = true;
+    for (const id of ids) {
+      try {
+        await axios.delete(`http://127.0.0.1:8000/api/libros/${id}/`);
+      } catch (error) {
+        success = false;
+      }
     }
+    if (success) {
+      Swal.fire('¡Eliminado!', 'Los registros han sido eliminados correctamente.', 'success');
+    } else {
+      Swal.fire('Advertencia', 'Algunos libros no se pudieron eliminar. Verifica tus permisos.', 'warning');
+    }
+    fetchLibros(busqueda, filtrosActivos);
+    setSelectedIds([]);
   };
 
   // --- LÓGICA DE EDITAR/CREAR ---

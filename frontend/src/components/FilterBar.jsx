@@ -11,6 +11,7 @@ const FilterBar = ({ type, onFilterApply }) => {
     titulo__icontains: '',
     materia__icontains: '',
     ubicacion_seccion: '',
+    anio: '',
     estado: ''
   } : {
     codigo_nuevo__icontains: '',
@@ -19,6 +20,7 @@ const FilterBar = ({ type, onFilterApply }) => {
     carrera__icontains: '',
     tutor__icontains: '',
     modalidad: '',
+    anio: '',
     estado: ''
   };
 
@@ -98,31 +100,39 @@ const FilterBar = ({ type, onFilterApply }) => {
                     <label className="text-xs font-bold text-gray-500 uppercase">Ubicación (Sección)</label>
                     <input name="ubicacion_seccion" value={filters.ubicacion_seccion} onChange={handleChange} placeholder="Ej: SECCION 1" className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-primary" />
                 </div>
+                <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Año</label>
+                    <input name="anio" value={filters.anio} onChange={handleChange} placeholder="Ej: 2020" className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-primary" type="number" min="1900" max="2100" />
+                </div>
               </>
             )}
 
             {/* CAMPOS ESPECÍFICOS TESIS */}
             {type === 'tesis' && (
               <>
-                 <div className="grid grid-cols-2 gap-2">
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase">Carrera</label>
-                        <input name="carrera__icontains" value={filters.carrera__icontains} onChange={handleChange} className="w-full p-2 border rounded text-sm" />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase">Tutor</label>
-                        <input name="tutor__icontains" value={filters.tutor__icontains} onChange={handleChange} className="w-full p-2 border rounded text-sm" />
-                    </div>
-                 </div>
-                 <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase">Modalidad</label>
-                    <select name="modalidad" value={filters.modalidad} onChange={handleChange} className="w-full p-2 border rounded text-sm bg-white">
-                        <option value="">Todas</option>
-                        <option value="TESIS">Tesis</option>
-                        <option value="PROYECTO DE GRADO">Proyecto de Grado</option>
-                        <option value="TRABAJO DIRIGIDO">Trabajo Dirigido</option>
-                    </select>
-                 </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Carrera</label>
+                    <input name="carrera__icontains" value={filters.carrera__icontains} onChange={handleChange} className="w-full p-2 border rounded text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Tutor</label>
+                    <input name="tutor__icontains" value={filters.tutor__icontains} onChange={handleChange} className="w-full p-2 border rounded text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase">Modalidad</label>
+                  <select name="modalidad" value={filters.modalidad} onChange={handleChange} className="w-full p-2 border rounded text-sm bg-white">
+                    <option value="">Todas</option>
+                    <option value="TESIS">Tesis</option>
+                    <option value="PROYECTO DE GRADO">Proyecto de Grado</option>
+                    <option value="TRABAJO DIRIGIDO">Trabajo Dirigido</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase">Año</label>
+                  <input name="anio" value={filters.anio} onChange={handleChange} placeholder="Ej: 2020" className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-primary" type="number" min="1900" max="2100" />
+                </div>
               </>
             )}
 

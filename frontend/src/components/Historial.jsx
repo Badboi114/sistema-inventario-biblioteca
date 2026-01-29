@@ -57,6 +57,7 @@ const Historial = () => {
   const getIcon = (accion) => {
     if (accion === 'Eliminado') return <Trash2 className="w-4 h-4 text-red-500" />;
     if (accion === 'Modificado') return <Edit3 className="w-4 h-4 text-orange-500" />;
+    if (accion === 'Estado Anterior') return <RotateCcw className="w-4 h-4 text-gray-500" />;
     return <PlusCircle className="w-4 h-4 text-blue-900" />;
   };
 
@@ -74,13 +75,16 @@ const Historial = () => {
                 <th className="p-4">Fecha / Hora</th>
                 <th className="p-4">Usuario</th>
                 <th className="p-4">Acción</th>
-                <th className="p-4">Detalle (Título / Código)</th>
+                <th className="p-4">Detalle Completo</th>
                 <th className="p-4 text-center">Restaurar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
               {registros.map((item) => (
-                <tr key={item.history_id} className="hover:bg-purple-50 transition-colors">
+                <tr key={item.history_id + (item.accion === 'Estado Anterior' ? '-anterior' : '')}
+                  className={`transition-colors ${
+                    item.accion === 'Estado Anterior' ? 'bg-gray-50 border-l-4 border-gray-300' : 'hover:bg-purple-50'
+                  }`}>
                   <td className="p-4 text-gray-500">
                     {new Date(item.fecha).toLocaleString()}
                   </td>
@@ -88,26 +92,48 @@ const Historial = () => {
                   <td className="p-4">
                     <span className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs font-bold w-max
                         ${item.accion === 'Eliminado' ? 'bg-red-100 text-red-700' : 
-                          item.accion === 'Modificado' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-900'}`}>
+                          item.accion === 'Modificado' ? 'bg-orange-100 text-orange-700' : 
+                          item.accion === 'Estado Anterior' ? 'bg-gray-200 text-gray-700 border border-gray-400' : 'bg-blue-100 text-blue-900'}`}>
                         {getIcon(item.accion)} {item.accion}
                     </span>
                   </td>
                   <td className="p-4">
-                    <div className="font-medium text-gray-800">{item.titulo}</div>
-                    <div className="text-xs text-gray-500">{item.tipo} • {item.codigo}</div>
-                  </td>
-                  <td className="p-4 text-center">
-                    {/* Solo mostramos botón restaurar si fue eliminado o modificado */}
-                    {item.accion !== 'Creado' && (
-                        <button 
-                            onClick={() => handleRestaurar(item)}
-                            title="Restaurar a este estado"
-                            className="bg-white border border-gray-300 hover:bg-blue-50 hover:border-blue-900 hover:text-blue-900 text-gray-500 p-2 rounded-lg transition-all shadow-sm"
-                        >
-                            <RotateCcw className="w-4 h-4" />
-                        </button>
+                    <div className="font-medium text-gray-800 mb-1">{item.titulo}</div>
+                    <div className="text-xs text-gray-500 mb-1">{item.tipo} • {item.codigo}</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600">
+                      <span><b>Autor:</b> {item.autor || '-'}</span>
+                      <span><b>Año:</b> {item.anio || '-'}</span>
+                      <span><b>Facultad:</b> {item.facultad || '-'}</span>
+                      <span><b>Estado:</b> {item.estado || '-'}</span>
+                      <span><b>Observaciones:</b> {item.observaciones || '-'}</span>
+                      <span><b>Sección:</b> {item.ubicacion_seccion || '-'}</span>
+                      <span><b>Repisa:</b> {item.ubicacion_repisa || '-'}</span>
+                      <span><b>Fecha Registro:</b> {item.fecha_registro ? new Date(item.fecha_registro).toLocaleString() : '-'}</span>
+                      {item.tipo === 'Libro' && <><span><b>Materia:</b> {item.materia || '-'}</span>
+                      <span><b>Editorial:</b> {item.editorial || '-'}</span>
+                      <span><b>Edición:</b> {item.edicion || '-'}</span>
+                      <span><b>Código Sección Full:</b> {item.codigo_seccion_full || '-'}</span>
+                      <span><b>Orden Importación:</b> {item.orden_importacion || '-'}</span></>}
+                      {item.tipo === 'Tesis' && <><span><b>Modalidad:</b> {item.modalidad || '-'}</span>
+                      <span><b>Tutor:</b> {item.tutor || '-'}</span>
+                      <span><b>Carrera:</b> {item.carrera || '-'}</span></>}
+                    </div>
+                    {item.accion === 'Estado Anterior' && (
+                      <div className="text-xs text-gray-400 italic mt-1">Estado previo antes de la edición</div>
                     )}
                   </td>
+                    <td className="p-4 text-center">
+                    {/* Mostrar botón restaurar si no es 'Creado' */}
+                    {item.accion !== 'Creado' && (
+                      <button 
+                        onClick={() => handleRestaurar(item)}
+                        title="Restaurar a este estado"
+                        className="bg-white border border-gray-300 hover:bg-blue-50 hover:border-blue-900 hover:text-blue-900 text-gray-500 p-2 rounded-lg transition-all shadow-sm"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
+                    </td>
                 </tr>
               ))}
             </tbody>

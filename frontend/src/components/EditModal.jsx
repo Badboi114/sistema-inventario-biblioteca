@@ -177,47 +177,46 @@ const EditModal = ({ isOpen, onClose, item, type, onSave }) => {
             <form id="edit-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
                 {/* ASISTENTE INTELIGENTE (PARA LIBROS Y TESIS) */}
-                {!isEditing && (
-                    <div className="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200 mb-2 shadow-sm">
-                        <label className="block text-sm font-bold text-blue-800 uppercase mb-3 flex items-center gap-2">
-                            {type === 'libros' ? <MapPin className="w-5 h-5" /> : <Hash className="w-5 h-5" />}
-                            🎯 Asistente Inteligente de {type === 'libros' ? 'Ubicación' : 'Códigos'}
-                        </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs text-gray-600 font-semibold block mb-2">
-                                    1️⃣ {type === 'libros' ? 'Elegir o Escribir Sección (ej: S1-R1)' : 'Elegir Prefijo (ej: ADM)'}
-                                </label>
-                                <input 
-                                    list="secciones-list" 
-                                    className="w-full p-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold text-blue-900"
-                                    placeholder={type === 'libros' ? 'Ej: S1-R1, S2-R3...' : 'Ej: ADM, CPU, IND...'}
-                                    value={prefijoSeccion}
-                                    onChange={handlePrefijoChange}
-                                />
-                                <datalist id="secciones-list">
-                                    {seccionesDisponibles.map(s => <option key={s} value={s} />)}
-                                </datalist>
-                                <p className="text-xs text-gray-500 mt-1">Selecciona de la lista o escribe {type === 'libros' ? 'una nueva sección' : 'un nuevo prefijo'}</p>
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-600 font-semibold block mb-2">
-                                    2️⃣ Código Generado Automáticamente (Editable)
-                                </label>
-                                <input 
-                                    name={type === 'libros' ? 'codigo_seccion_full' : 'codigo_nuevo'}
-                                    value={type === 'libros' ? (formData.codigo_seccion_full || '') : (formData.codigo_nuevo || '')}
-                                    onChange={handleChange}
-                                    className="w-full p-3 border-2 border-blue-300 rounded-lg font-bold text-blue-900 text-lg bg-blue-50 focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Se generará automáticamente..."
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {(type === 'libros' ? formData.codigo_seccion_full : formData.codigo_nuevo) ? '✅ Código sugerido (puedes editarlo)' : `⏳ Esperando ${type === 'libros' ? 'sección' : 'prefijo'}...`}
-                                </p>
-                            </div>
+                <div className="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200 mb-2 shadow-sm">
+                    <label className="block text-sm font-bold text-blue-800 uppercase mb-3 flex items-center gap-2">
+                        {type === 'libros' ? <MapPin className="w-5 h-5" /> : <Hash className="w-5 h-5" />}
+                        🎯 Asistente Inteligente de {type === 'libros' ? 'Ubicación' : 'Códigos'}
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs text-gray-600 font-semibold block mb-2">
+                                1️⃣ {type === 'libros' ? 'Elegir o Escribir Sección (ej: S1-R1)' : 'Elegir Prefijo (ej: ADM)'}
+                            </label>
+                            <input 
+                                list="secciones-list" 
+                                className="w-full p-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold text-blue-900"
+                                placeholder={type === 'libros' ? 'Ej: S1-R1, S2-R3...' : 'Ej: ADM, CPU, IND...'}
+                                value={prefijoSeccion}
+                                onChange={handlePrefijoChange}
+                                disabled={isEditing ? false : false}
+                            />
+                            <datalist id="secciones-list">
+                                {seccionesDisponibles.map(s => <option key={s} value={s} />)}
+                            </datalist>
+                            <p className="text-xs text-gray-500 mt-1">Selecciona de la lista o escribe {type === 'libros' ? 'una nueva sección' : 'un nuevo prefijo'}</p>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-600 font-semibold block mb-2">
+                                2️⃣ Código Generado Automáticamente (Editable)
+                            </label>
+                            <input 
+                                name={type === 'libros' ? 'codigo_seccion_full' : 'codigo_nuevo'}
+                                value={type === 'libros' ? (formData.codigo_seccion_full || '') : (formData.codigo_nuevo || '')}
+                                onChange={handleChange}
+                                className="w-full p-3 border-2 border-blue-300 rounded-lg font-bold text-blue-900 text-lg bg-blue-50 focus:ring-2 focus:ring-blue-500"
+                                placeholder="Se generará automáticamente..."
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {(type === 'libros' ? formData.codigo_seccion_full : formData.codigo_nuevo) ? '✅ Código sugerido (puedes editarlo)' : `⏳ Esperando ${type === 'libros' ? 'sección' : 'prefijo'}...`}
+                            </p>
                         </div>
                     </div>
-                )}
+                </div>
 
                 {/* RESTO DE CAMPOS */}
                 {fields.map((field) => (
