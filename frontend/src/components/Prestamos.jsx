@@ -10,10 +10,12 @@ const Prestamos = () => {
   const [busqueda, setBusqueda] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   
-  // Datos del formulario
-  const [tipoPrestamo, setTipoPrestamo] = useState('SALA');
-  const [observaciones, setObservaciones] = useState('');
-  const [requisitosVerificados, setRequisitosVerificados] = useState(false);
+    // Datos del formulario
+    const [tipoPrestamo, setTipoPrestamo] = useState('SALA');
+    const [observaciones, setObservaciones] = useState('');
+    const [requisitosVerificados, setRequisitosVerificados] = useState(false);
+    // Campo carrera (editable y autocompletable)
+    const [carreraInput, setCarreraInput] = useState('');
 
   // ESTADOS INTELIGENTES PARA ESTUDIANTE
   const [ciInput, setCiInput] = useState('');      // Lo que el usuario escribe en CI
@@ -74,6 +76,7 @@ const Prestamos = () => {
       if (!ciInput) {
           setEstudianteEncontrado(null);
           setNombreInput('');
+          setCarreraInput('');
           return;
       }
 
@@ -84,13 +87,12 @@ const Prestamos = () => {
           // ¡ENCONTRADO! Rellenamos todo
           setEstudianteEncontrado(encontrado);
           setNombreInput(encontrado.nombre_completo);
+          setCarreraInput(encontrado.carrera || '');
       } else {
           // NO ENCONTRADO
-          // Truco: Solo borramos el nombre si ANTES teníamos a alguien seleccionado.
-          // Esto evita que se borre el nombre mientras escribes uno nuevo,
-          // pero SÍ lo borra si pasaste de un carnet válido (123) a uno nuevo (1234).
           if (estudianteEncontrado) {
               setNombreInput('');
+              setCarreraInput('');
               setEstudianteEncontrado(null);
           }
           // Si nunca hubo nadie seleccionado (estás creando uno desde cero), no borramos nada.
@@ -108,6 +110,7 @@ const Prestamos = () => {
       setRequisitosVerificados(false);
       setBusquedaLibro('');
       setObservaciones('');
+      setCarreraInput('');
       cargarCatalogos();
   };
 
@@ -148,7 +151,9 @@ const Prestamos = () => {
                   } else {
                       payload.nuevo_nombre = nombreInput;
                       payload.nuevo_ci = ciInput;
-                      // nuevo_carrera: NO SE ENVÍA (El backend pondrá "No especificada")
+                      if (carreraInput && carreraInput.trim() !== '') {
+                        payload.nuevo_carrera = carreraInput.trim();
+                      }
                   }
                   
                   await axios.post('http://127.0.0.1:8000/api/prestamos/', payload, {
@@ -411,27 +416,39 @@ const Prestamos = () => {
                             />
                         </div>
 
-                        {/* Input Nombre */}
-                        <div className="relative">
-                            <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                            <input 
-                                type="text"
-                                className={`w-full pl-10 pr-4 py-2 border-2 rounded-xl outline-none transition-all ${
-                                    estudianteEncontrado 
-                                        ? 'border-blue-400 bg-blue-50 text-blue-900 cursor-not-allowed' 
-                                        : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                                }`}
-                                placeholder="Nombre Completo del Estudiante"
-                                value={nombreInput}
-                                onChange={(e) => setNombreInput(e.target.value)}
-                                readOnly={!!estudianteEncontrado}
-                            />
-                            {estudianteEncontrado && (
-                                <span className="absolute right-3 top-2.5 flex items-center gap-1 text-xs font-bold text-blue-900">
-                                    <CheckCircle className="w-3 h-3" /> Registrado
-                                </span>
-                            )}
-                        </div>
+
+                            {/* Input Nombre (editable siempre) */}
+                            <div className="relative">
+                                <User className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                <input 
+                                    type="text"
+                                    className={`w-full pl-10 pr-4 py-2 border-2 rounded-xl outline-none transition-all ${
+                                        estudianteEncontrado 
+                                            ? 'border-blue-400 bg-blue-50 text-blue-900' 
+                                            : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                                    }`}
+                                    placeholder="Nombre Completo del Estudiante"
+                                    value={nombreInput}
+                                    onChange={(e) => setNombreInput(e.target.value)}
+                                />
+                                {estudianteEncontrado && (
+                                    <span className="absolute right-3 top-2.5 flex items-center gap-1 text-xs font-bold text-blue-900">
+                                        <CheckCircle className="w-3 h-3" /> Registrado
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Input Carrera (editable siempre) */}
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                                <input
+                                  type="text"
+                                  className="w-full pl-10 pr-4 py-2 border-2 rounded-xl outline-none transition-all border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                  placeholder="Carrera del estudiante (opcional)"
+                                  value={carreraInput}
+                                  onChange={e => setCarreraInput(e.target.value)}
+                                />
+                            </div>
 
                         {!estudianteEncontrado && ciInput && (
                             <p className="text-xs text-amber-600 flex items-center gap-1">
@@ -482,91 +499,67 @@ const Prestamos = () => {
                             </div>
                         )}
 
-                        {/* BÚSQUEDA ADICIONAL DE MATERIALES */}
-                        <div className="relative">{!libroSeleccionado ? (
-                            <>
-                                <div className="flex items-center border-2 border-gray-200 rounded-xl p-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all bg-gray-50">
-                                    <Search className="w-5 h-5 text-gray-400 mr-2" />
-                                    <input 
-                                        type="text" 
-                                        className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
-                                        placeholder="¿Agregar más? Busca por código o título..."
-                                        value={busquedaLibro}
-                                        onChange={(e) => setBusquedaLibro(e.target.value)}
-                                    />
-                                </div>
-                                {librosFiltrados.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-xl mt-2 z-20 overflow-hidden max-h-60 overflow-y-auto">
-                                        {librosFiltrados.map(l => (
-                                            <div 
-                                                key={l.id} 
-                                                className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 transition-colors"
-                                                onClick={() => { 
-                                                    setLibroSeleccionado(l); 
-                                                    setBusquedaLibro('');
-                                                    if(l.tipo === 'TESIS') {
-                                                        setTipoPrestamo('SALA');
-                                                        Swal.fire({ toast: true, position: 'center', icon: 'info', title: 'Las tesis solo se prestan en SALA', timer: 3000, showConfirmButton: false });
-                                                    }
-                                                }}
-                                            >
-                                                {/* Encabezado: Tipo + Código */}
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                                                        l.tipo === 'TESIS' 
-                                                            ? 'bg-blue-100 text-blue-900 border-blue-200' 
-                                                            : 'bg-blue-100 text-blue-700 border-blue-200'
-                                                    }`}>
-                                                        {l.tipo}
-                                                    </span>
-                                                    <span className="font-mono text-xs font-bold text-gray-600 bg-gray-100 px-2 rounded">
-                                                        {l.codigo_nuevo || 'SIN CÓDIGO'}
-                                                    </span>
-                                                </div>
-                                                
-                                                {/* Título */}
-                                                <div className="font-bold text-gray-800 text-sm leading-tight mb-1">
-                                                    {l.titulo}
-                                                </div>
-                                                
-                                                {/* Autor */}
-                                                <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                                    <User className="w-3 h-3" /> {l.autor || 'Sin Autor'}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 p-3 rounded-xl animate-fade-in">
-                                <div className="flex-1 min-w-0">
-                                    {/* Código + Tipo */}
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-mono font-bold text-blue-900 bg-white px-2 rounded text-sm border border-blue-100">
-                                            {libroSeleccionado.codigo_nuevo || 'S/C'}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-blue-600 border border-blue-200 px-1 rounded">
-                                            {libroSeleccionado.tipo}
-                                        </span>
-                                    </div>
-                                    {/* Título */}
-                                    <div className="text-xs text-gray-700 font-medium truncate">
-                                        {libroSeleccionado.titulo}
-                                    </div>
-                                    {/* Autor */}
-                                    <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
-                                        <User className="w-3 h-3" /> {libroSeleccionado.autor || 'Sin Autor'}
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={() => setLibroSeleccionado(null)} 
-                                    className="text-red-500 hover:bg-red-50 p-2 rounded-full transition-colors ml-2"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
+                        {/* BÚSQUEDA ADICIONAL DE MATERIALES (siempre visible) */}
+                        <div className="relative">
+                            <div className="flex items-center border-2 border-gray-200 rounded-xl p-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all bg-gray-50">
+                                <Search className="w-5 h-5 text-gray-400 mr-2" />
+                                <input 
+                                    type="text" 
+                                    className="w-full bg-transparent outline-none text-gray-700 placeholder-gray-400"
+                                    placeholder="¿Agregar más? Busca por código o título..."
+                                    value={busquedaLibro}
+                                    onChange={(e) => setBusquedaLibro(e.target.value)}
+                                />
                             </div>
-                        )}
+                            {librosFiltrados.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 bg-white border rounded-xl shadow-xl mt-2 z-20 overflow-hidden max-h-60 overflow-y-auto">
+                                    {librosFiltrados.map(l => (
+                                        <div 
+                                            key={l.id} 
+                                            className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 transition-colors"
+                                            onClick={() => {
+                                                // Evitar agregar duplicados
+                                                if (!cart.some(item => item.id === l.id)) {
+                                                    // Usar el método del contexto para agregar al carrito
+                                                    // (asumiendo que existe un método addToCart)
+                                                    if (typeof window !== 'undefined' && window.addToCart) {
+                                                        window.addToCart(l);
+                                                    } else if (typeof addToCart === 'function') {
+                                                        addToCart(l);
+                                                    }
+                                                }
+                                                setBusquedaLibro('');
+                                                if(l.tipo === 'TESIS') {
+                                                    setTipoPrestamo('SALA');
+                                                    Swal.fire({ toast: true, position: 'center', icon: 'info', title: 'Las tesis solo se prestan en SALA', timer: 3000, showConfirmButton: false });
+                                                }
+                                            }}
+                                        >
+                                            {/* Encabezado: Tipo + Código */}
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                                    l.tipo === 'TESIS' 
+                                                        ? 'bg-blue-100 text-blue-900 border-blue-200' 
+                                                        : 'bg-blue-100 text-blue-700 border-blue-200'
+                                                }`}>
+                                                    {l.tipo}
+                                                </span>
+                                                <span className="font-mono text-xs font-bold text-gray-600 bg-gray-100 px-2 rounded">
+                                                    {l.codigo_nuevo || 'SIN CÓDIGO'}
+                                                </span>
+                                            </div>
+                                            {/* Título */}
+                                            <div className="font-bold text-gray-800 text-sm leading-tight mb-1">
+                                                {l.titulo}
+                                            </div>
+                                            {/* Autor */}
+                                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                <User className="w-3 h-3" /> {l.autor || 'Sin Autor'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -584,17 +577,18 @@ const Prestamos = () => {
                                 <div className="text-[10px] mt-1">Devuelve HOY</div>
                             </button>
 
+                            {/* Deshabilitar DOMICILIO si hay alguna tesis en el carrito */}
                             <button 
                                 type="button"
-                                disabled={libroSeleccionado?.tipo === 'TESIS'}
+                                disabled={cart.some(item => item.tipo === 'TESIS')}
                                 onClick={() => setTipoPrestamo('DOMICILIO')}
                                 className={`p-3 rounded-lg border-2 transition-all text-center 
                                     ${tipoPrestamo === 'DOMICILIO' ? 'border-orange-500 bg-orange-100 text-orange-800 ring-2 ring-orange-200' : 'border-gray-300 hover:bg-white'}
-                                    ${libroSeleccionado?.tipo === 'TESIS' ? 'opacity-40 cursor-not-allowed' : ''}
+                                    ${cart.some(item => item.tipo === 'TESIS') ? 'opacity-40 cursor-not-allowed' : ''}
                                 `}
                             >
                                 <div className="font-bold">DOMICILIO</div>
-                                <div className="text-[10px] mt-1">{libroSeleccionado?.tipo === 'TESIS' ? '🚫 NO PERMITIDO' : 'Devuelve en 2 DÍAS'}</div>
+                                <div className="text-[10px] mt-1">{cart.some(item => item.tipo === 'TESIS') ? '🚫 NO PERMITIDO' : 'Devuelve en 2 DÍAS'}</div>
                             </button>
                         </div>
 

@@ -174,7 +174,7 @@ const Libros = ({ onNavigateToPrestamos }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative">
       {/* Header con Buscador */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 sticky top-0 z-30 bg-white py-4" style={{boxShadow: '0 2px 8px -4px #0001'}}>
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
             <Book className="mr-2 text-primary" /> Catálogo de Libros

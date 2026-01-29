@@ -271,11 +271,10 @@ const Estudiantes = () => {
               {/* Carrera */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                  <GraduationCap className="w-3 h-3 inline mr-1" /> Carrera *
+                  <GraduationCap className="w-3 h-3 inline mr-1" /> Carrera (opcional)
                 </label>
                 <input
                   type="text"
-                  required
                   value={formData.carrera}
                   onChange={(e) => setFormData({ ...formData, carrera: e.target.value })}
                   className="w-full border rounded-lg p-2 outline-none focus:border-blue-500"

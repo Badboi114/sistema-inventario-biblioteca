@@ -169,12 +169,11 @@ const Tesis = ({ onNavigateToPrestamos }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative">
       {/* Header con Buscador */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 sticky top-0 z-30 bg-white py-4" style={{boxShadow: '0 2px 8px -4px #0001'}}>
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
             <GraduationCap className="mr-2 text-blue-900" /> Proyectos de Grado y Tesis
           </h2>
-          
           {/* BOTÓN PRESTAR SELECCIONADOS */}
           {cart.filter(item => item.tipo === 'TESIS').length > 0 && (
             <button 
@@ -185,7 +184,6 @@ const Tesis = ({ onNavigateToPrestamos }) => {
               Prestar ({cart.filter(item => item.tipo === 'TESIS').length}) Seleccionados
             </button>
           )}
-          
           {/* BOTÓN NUEVO */}
           <button 
             onClick={handleCreateNew}
@@ -194,7 +192,6 @@ const Tesis = ({ onNavigateToPrestamos }) => {
             <Plus className="w-4 h-4 mr-2" /> Nueva Tesis
           </button>
         </div>
-        
         <div className="flex gap-2 w-full md:w-auto">
           <form onSubmit={handleSearch} className="relative flex-1 md:w-80">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -206,7 +203,6 @@ const Tesis = ({ onNavigateToPrestamos }) => {
               onChange={(e) => setBusqueda(e.target.value)}
             />
           </form>
-          
           {/* BOTÓN DE FILTRO */}
           <FilterBar type="tesis" onFilterApply={handleFilterApply} />
         </div>
@@ -214,122 +210,103 @@ const Tesis = ({ onNavigateToPrestamos }) => {
 
       {/* Tabla de Resultados */}
       {loading ? (
-        <div className="text-center py-10 text-gray-500">Cargando investigaciones...</div>
+        <div className="text-center py-10 text-gray-500">Cargando tesis...</div>
       ) : (
         <div className="overflow-x-auto min-h-[400px]">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-blue-50 text-gray-700 text-sm uppercase border-b border-blue-100">
+            <thead className="bg-blue-50 text-gray-700 text-sm uppercase border-b border-blue-100 font-bold sticky top-0 z-20">
+              <tr>
                 <th className="p-4 w-10">
                   <BookOpen className="w-4 h-4 text-orange-500" title="Marcar para prestar" />
                 </th>
                 <th className="p-4">Código</th>
                 <th className="p-4">Título / Modalidad</th>
-                <th className="p-4">Autor y Tutor</th>
+                <th className="p-4">Autor / Tutor</th>
                 <th className="p-4">Facultad</th>
                 <th className="p-4">Carrera</th>
                 <th className="p-4">Año</th>
-                <th className="p-4">Estado</th>
+                <th className="p-4 text-center">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
               {tesis.map((item) => {
-                const estadoPrestamo = getEstadoPrestamo(item.id);
-                const enCarrito = !!cart.find(c => c.id === item.id);
-                const isPrestado = !!estadoPrestamo;
-                
+                const isPrestado = !!getEstadoPrestamo(item.id);
+                const estadoPrestamo = getEstadoPrestamo(item.id) || {};
+                const enCarrito = cart.some((i) => i.id === item.id && i.tipo === 'TESIS');
                 return (
-                <tr 
-                  key={item.id} 
-                  className={`transition-colors cursor-pointer ${
-                    enCarrito ? 'bg-orange-50 border-l-4 border-orange-400' : 
-                    isPrestado ? 'bg-red-50 opacity-75' : 
-                    'hover:bg-blue-50'
-                  }`}
-                  onContextMenu={(e) => handleContextMenu(e, item)}
-                >
-                  <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                    {!isPrestado ? (
-                      <input 
-                        type="checkbox" 
-                        className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
-                        checked={enCarrito} 
-                        onChange={() => toggleItem({...item, tipo: 'TESIS'})}
-                        title="Marcar para prestar"
-                      />
-                    ) : (
-                      <span className="text-red-500 text-xl font-bold" title="No disponible">✕</span>
-                    )}
-                  </td>
-                  <td className={`p-4 font-bold whitespace-nowrap ${isPrestado ? 'text-red-700' : 'text-blue-900'}`}>
-                    <div className="flex flex-col gap-1">
-                      {item.codigo_nuevo}
-                      {isPrestado && (
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                          estadoPrestamo.tipo === 'SALA' 
-                            ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
-                            : 'bg-red-100 text-red-700 border border-red-300'
-                        }`}>
-                          {estadoPrestamo.tipo === 'SALA' ? 'EN USO' : 'PRESTADO'}
-                        </span>
+                  <tr key={item.id} onContextMenu={(e) => handleContextMenu(e, item)} className={`transition-colors cursor-pointer ${enCarrito ? 'bg-orange-50 border-l-4 border-orange-400' : isPrestado ? 'bg-red-50 opacity-75' : 'hover:bg-blue-50'}`}>
+                    <td className="p-4 align-top" onClick={e => e.stopPropagation()}>
+                      {!isPrestado ? (
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                          checked={enCarrito} 
+                          onChange={() => toggleItem({...item, tipo: 'TESIS'})}
+                          title="Marcar para prestar"
+                        />
+                      ) : (
+                        <span className="text-red-500 text-xl font-bold" title="No disponible">✕</span>
                       )}
-                    </div>
-                  </td>
-                  <td className={`p-4 max-w-md ${isPrestado ? 'text-red-600' : ''}`}>
-                    <div className={`font-medium truncate mb-1 ${isPrestado ? 'text-red-600' : 'text-gray-800'}`} title={item.titulo}>
-                      {item.titulo}
-                    </div>
-                    {isPrestado && (
-                      <div className="text-xs text-red-500 italic mt-1">
-                        Por: {estadoPrestamo.estudiante}
+                    </td>
+                    <td className={`p-4 align-top min-w-[180px] ${isPrestado ? 'text-red-700' : ''}`}> 
+                      <div className="flex flex-col gap-2">
+                        <div className={`font-bold text-base ${isPrestado ? 'text-red-700' : 'text-blue-700'}`}>{item.codigo_nuevo || 'S/C'}</div>
+                        {isPrestado && (
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${estadoPrestamo.tipo === 'SALA' ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' : 'bg-red-100 text-red-700 border border-red-300'}`}>
+                            {estadoPrestamo.tipo === 'SALA' ? 'EN USO' : 'PRESTADO'}
+                          </span>
+                        )}
                       </div>
-                    )}
-                    <div className="text-xs text-gray-500 flex items-center gap-1">
-                      <span className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                        {item.modalidad}
+                    </td>
+                    <td className={`p-4 align-top max-w-md ${isPrestado ? 'text-red-600' : ''}`}>
+                      <div className={`font-medium text-base leading-tight mb-1 ${isPrestado ? 'text-red-600' : 'text-gray-800'}`}>{item.titulo}</div>
+                      {isPrestado && (
+                        <div className="text-xs text-red-500 italic mt-1">Por: {estadoPrestamo.estudiante}</div>
+                      )}
+                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <span className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">{item.modalidad}</span>
+                      </div>
+                    </td>
+                    <td className={`p-4 align-top ${isPrestado ? 'text-red-600' : ''}`}> 
+                      <div className="flex flex-col gap-1">
+                        <div className={`flex items-center gap-1 ${isPrestado ? 'text-red-600' : 'text-gray-800'}`}> 
+                          <User className="w-3 h-3 text-blue-500" /> 
+                          <span className="font-medium text-xs">{item.autor}</span>
+                        </div>
+                        <div className={`flex items-center gap-1 text-xs ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}> 
+                          <Users className="w-3 h-3" />
+                          <span className="font-semibold">Tutor:</span> {item.tutor}
+                        </div>
+                      </div>
+                    </td>
+                    <td className={`p-4 align-top ${isPrestado ? 'text-red-600' : ''}`}> 
+                      <div className={`flex items-center gap-1 font-medium ${isPrestado ? 'text-red-600' : 'text-gray-700'}`}> 
+                        <Building2 className="w-3 h-3 text-gray-400" />
+                        {item.facultad}
+                      </div>
+                    </td>
+                    <td className={`p-4 align-top ${isPrestado ? 'text-red-600' : ''}`}> 
+                      <div className="flex items-center gap-1 text-xs"> 
+                        <Briefcase className="w-3 h-3 text-gray-400" />
+                        {item.carrera}
+                      </div>
+                    </td>
+                    <td className={`p-4 align-top ${isPrestado ? 'text-red-500' : ''}`}> 
+                      <div className={`flex items-center gap-1 text-xs ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}> 
+                        <Calendar className="w-3 h-3" />
+                        {item.anio}
+                      </div>
+                    </td>
+                    <td className="p-4 align-top text-center">
+                      <span className={`px-2 py-1 rounded-full font-bold text-[10px] border inline-flex items-center gap-1
+                        ${item.estado === 'BUENO' ? 'bg-blue-100 text-blue-900 border-blue-200' : 
+                          item.estado === 'REGULAR' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
+                          'bg-red-100 text-red-700 border-red-200'}`}>
+                        {item.estado !== 'BUENO' && item.estado !== 'REGULAR' && <AlertCircle className="w-3 h-3" />}
+                        {item.estado}
                       </span>
-                    </div>
-                  </td>
-                  <td className={`p-4 ${isPrestado ? 'text-red-600' : ''}`}>
-                    <div className="flex flex-col gap-1">
-                      <div className={`flex items-center gap-1 ${isPrestado ? 'text-red-600' : 'text-gray-800'}`}>
-                        <User className="w-3 h-3 text-blue-500" /> 
-                        <span className="font-medium text-xs">{item.autor}</span>
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}>
-                        <Users className="w-3 h-3" />
-                        <span className="font-semibold">Tutor:</span> {item.tutor}
-                      </div>
-                    </div>
-                  </td>
-                  <td className={`p-4 ${isPrestado ? 'text-red-600' : ''}`}>
-                    <div className={`flex items-center gap-1 font-medium ${isPrestado ? 'text-red-600' : 'text-gray-700'}`}>
-                      <Building2 className="w-3 h-3 text-gray-400" />
-                      {item.facultad}
-                    </div>
-                  </td>
-                  <td className={`p-4 ${isPrestado ? 'text-red-600' : ''}`}>
-                    <div className="flex items-center gap-1 text-xs">
-                      <Briefcase className="w-3 h-3 text-gray-400" />
-                      {item.carrera}
-                    </div>
-                  </td>
-                  <td className={`p-4 ${isPrestado ? 'text-red-500' : ''}`}>
-                    <div className={`flex items-center gap-1 text-xs ${isPrestado ? 'text-red-500' : 'text-gray-500'}`}>
-                      <Calendar className="w-3 h-3" />
-                      {item.anio}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1
-                      ${item.estado === 'BUENO' ? 'bg-blue-100 text-blue-900' : 
-                        item.estado === 'REGULAR' ? 'bg-yellow-100 text-yellow-700' : 
-                        'bg-red-100 text-red-700'}`}>
-                      {item.estado !== 'BUENO' && item.estado !== 'REGULAR' && <AlertCircle className="w-3 h-3" />}
-                      {item.estado}
-                    </span>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>

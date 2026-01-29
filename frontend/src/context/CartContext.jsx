@@ -8,9 +8,20 @@ export const CartProvider = ({ children }) => {
   const addToCart = (item) => {
     // Evitar duplicados
     if (!cart.find(i => i.id === item.id)) {
-      setCart([...cart, item]);
+      setCart(prev => {
+        const nuevo = [...prev, item];
+        if (typeof window !== 'undefined') {
+          window.cart = nuevo;
+        }
+        return nuevo;
+      });
     }
   };
+
+  // Exponer addToCart globalmente para uso en Prestamos.jsx
+  if (typeof window !== 'undefined') {
+    window.addToCart = addToCart;
+  }
 
   const removeFromCart = (id) => {
     setCart(cart.filter(item => item.id !== id));

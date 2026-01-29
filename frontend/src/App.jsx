@@ -8,6 +8,7 @@ import Login from './components/Login';
 import PerfilModal from './components/PerfilModal';
 import Prestamos from './components/Prestamos';
 import Estudiantes from './components/Estudiantes';
+import ConsultaEstudiante from './components/ConsultaEstudiante';
 
 function App() {
   // --- ESTADOS ---
@@ -84,6 +85,16 @@ function App() {
         </div>
         
         <nav className="flex-1 py-6 px-3 space-y-2">
+          <a
+            href="/consulta"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center p-3 rounded-lg transition-colors text-gray-400 hover:bg-gray-800"
+            style={{ textDecoration: 'none' }}
+          >
+            <BookOpen className="w-5 h-5" />
+            {sidebarOpen && <span className="ml-3 font-medium">Consulta Estudiante</span>}
+          </a>
           <button 
             onClick={() => setCurrentView('dashboard')}
             className={`w-full flex items-center p-3 rounded-lg transition-colors ${currentView === 'dashboard' ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:bg-gray-800'}`}
@@ -252,6 +263,9 @@ function App() {
 
         {/* VISTA: TESIS */}
         {currentView === 'tesis' && <Tesis onNavigateToPrestamos={handleGoToPrestamos} />}
+
+        {/* VISTA: CONSULTA SOLO LECTURA ESTUDIANTE */}
+        {currentView === 'consulta' && <ConsultaEstudiante />}
 
         {/* VISTA: PRÉSTAMOS */}
         {currentView === 'prestamos' && <Prestamos />}
