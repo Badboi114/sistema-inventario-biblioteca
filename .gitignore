@@ -26,7 +26,7 @@ MANIFEST
 # Django
 *.log
 local_settings.py
-db.sqlite3
+# db.sqlite3 se incluye en el repo (viene con datos precargados)
 db.sqlite3-journal
 /media
 /staticfiles
@@ -69,3 +69,9 @@ yarn-error.log*
 *.tmp
 *.bak
 *.cache
+
+# Scripts temporales de análisis/importación
+analisis_*.py
+sincronizar_*.py
+sync_*.py
+verificacion_*.py

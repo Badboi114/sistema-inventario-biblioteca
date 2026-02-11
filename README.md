@@ -1,15 +1,16 @@
 # Sistema de Inventario de Biblioteca
 
-Sistema completo de gestión de inventario bibliográfico desarrollado con Django REST Framework y React + Vite.
+Sistema completo de gestión de inventario bibliográfico desarrollado con Django REST Framework y React + Vite para la Universidad Privada Domingo Savio (UPDS) - Cochabamba.
 
 ## 🚀 Características
 
-- **Dashboard Estadístico**: Visualización de métricas en tiempo real (1,289 libros y 684 tesis)
+- **Dashboard Estadístico**: Visualización de métricas en tiempo real (1,703 libros y 705 tesis/proyectos de grado)
 - **Catálogo de Libros**: Búsqueda y filtrado por título, autor, materia y código
 - **Catálogo de Tesis**: Gestión de trabajos de grado con información de tutor, carrera y modalidad
 - **Panel de Administración**: Sistema completo de auditoría con django-simple-history
 - **Generación de Etiquetas QR**: Exportación de códigos QR en PDF para etiquetado físico
 - **API REST**: Endpoints completos para integración con otros sistemas
+- **Base de datos precargada**: Incluye todos los 1,703 libros y 705 proyectos de grado ya cargados
 
 ## 🛠️ Tecnologías
 
@@ -31,87 +32,64 @@ Sistema completo de gestión de inventario bibliográfico desarrollado con Djang
 
 ## 📋 Requisitos Previos
 
-- Python 3.13 o superior
+- Python 3.10 o superior
 - Node.js 18 o superior
-- npm o yarn
+- npm
 
-## 🔧 Instalación
+## ⚡ Inicio Rápido
 
-### Backend (Django)
+> **La base de datos ya viene precargada con todos los datos (1,703 libros y 705 tesis). No necesitas importar nada.**
 
-1. Clona el repositorio:
+### 1. Clonar el repositorio
 ```bash
-git clone <tu-repositorio>
-cd SISTEMA-DE-INVENTARIO-DE-BIBLIOTECA
+git clone https://github.com/Badboi114/sistema-inventario-biblioteca.git
+cd sistema-inventario-biblioteca
 ```
 
-2. Crea y activa un entorno virtual:
+### 2. Backend (Django)
 ```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-```
-
-3. Instala las dependencias:
-```bash
-pip install django djangorestframework django-cors-headers pandas openpyxl django-simple-history reportlab qrcode pillow
-```
-
-4. Aplica las migraciones:
-```bash
-python manage.py migrate
-```
-
-5. Crea un superusuario:
-```bash
-python manage.py createsuperuser
-```
-
-6. Inicia el servidor:
-```bash
+python3 -m venv venv
+source venv/bin/activate        # Linux/Mac
+# venv\Scripts\activate         # Windows
+pip install -r requirements.txt
 python manage.py runserver
 ```
+El backend estará en `http://127.0.0.1:8000/`
 
-El backend estará disponible en `http://127.0.0.1:8000/`
-
-### Frontend (React)
-
-1. Navega a la carpeta del frontend:
+### 3. Frontend (React) — en otra terminal
 ```bash
 cd frontend
-```
-
-2. Instala las dependencias:
-```bash
 npm install
-```
-
-3. Inicia el servidor de desarrollo:
-```bash
 npm run dev
 ```
+El frontend estará en `http://localhost:5173/`
 
-El frontend estará disponible en `http://localhost:5173/`
+### 4. Acceder al sistema
+- **Frontend**: http://localhost:5173/
+- **Admin Django**: http://127.0.0.1:8000/admin/
+- **Usuario**: `admin`
+- **Contraseña**: `admin123`
 
-## 📊 Importación de Datos
+> ¡Eso es todo! El sistema está listo para usar con todos los datos precargados.
 
-Para importar datos desde Excel:
+## 📊 Datos del Sistema
 
-```bash
-python manage.py importar_data ruta/al/archivo.xlsx
-```
+Los datos provienen exclusivamente del archivo Excel: `BASE DE EXISTENCIA DE LIBROS, PROYECTOS DE GRADO, TESIS Y TRABAJO DIRIGIDO (2).xlsx`
 
-El archivo debe tener dos hojas:
-- `LISTA DE LIBROS ACADEMICOS`: Para libros
-- `LISTA DE PROYECTOS DE GRADO`: Para tesis
+| Sección | Cantidad | Hoja del Excel |
+|---------|----------|----------------|
+| Libros Académicos | 1,703 | LISTA DE LIBROS ACADEMICOS |
+| Tesis/Proyectos de Grado | 705 | LISTA DE PROYECTOS DE GRADO |
+| **Total** | **2,408** | |
+
+> La base de datos (`db.sqlite3`) ya está incluida en el repositorio con todos estos datos precargados.
 
 ## 🔑 Acceso al Sistema
 
 ### Panel de Administración Django
 - URL: `http://127.0.0.1:8000/admin/`
-- Usuario: admin (o el que creaste)
+- **Usuario:** `admin`
+- **Contraseña:** `admin123`
 
 ### Dashboard Principal
 - URL: `http://localhost:5173/`
